@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="naver_paste_service_description">사용자가 준비한 문단과 사진을 네이버 블로그 본문에 순서대로 붙여넣습니다. 발행은 자동으로 하지 않습니다.</string>
+    <string name="app_name">경쟁사 키워드 리서치</string>
+</resources>

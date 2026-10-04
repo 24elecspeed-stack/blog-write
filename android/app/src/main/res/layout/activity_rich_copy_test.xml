@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/rootScroll" android:layout_width="match_parent" android:layout_height="match_parent" android:clipToPadding="false" android:fillViewport="true">
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
+    <LinearLayout android:id="@+id/generationPanel" android:layout_width="match_parent" android:layout_height="560dp" android:orientation="vertical">
+      <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="블로그 반자동 복사" android:textColor="@color/text_primary" android:textSize="22sp" android:textStyle="bold" android:layout_marginTop="4dp" />
+      <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="콘텐츠 생성" android:textColor="@color/text_primary" android:textSize="16sp" android:textStyle="bold" />
+      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="horizontal">
+        <Button android:id="@+id/btnGeneratePrompt" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:text="출장 사례형" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="12dp" android:paddingHorizontal="6dp" />
+        <Button android:id="@+id/btnGenerateInformationalPrompt" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginStart="8dp" android:text="정보형" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="12dp" android:paddingHorizontal="6dp" />
+      </LinearLayout>
+      <Button android:id="@+id/btnGenerateDraft" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="4dp" android:backgroundTint="@color/accent" android:text="Gemini로 초안 생성" android:textColor="@android:color/white" android:textSize="14sp" android:textStyle="bold" app:cornerRadius="14dp" android:paddingHorizontal="6dp" />
+      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="horizontal">
+        <Button android:id="@+id/btnWritingGuide" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:text="글쓰기 기준" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="12dp" android:paddingHorizontal="6dp" />
+        <Button android:id="@+id/btnEditBasePrompt" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginStart="8dp" android:text="기본 명령문 편집" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="12dp" android:paddingHorizontal="6dp" />
+      </LinearLayout>
+      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="4dp">
+        <Button android:id="@+id/btnOpenChatGpt" android:layout_width="0dp" android:layout_height="48dp" android:layout_marginTop="0dp" android:backgroundTint="@color/accent" android:text="ChatGPT 열기" android:textColor="@android:color/white" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="12dp" app:icon="@drawable/ic_studio_chat" app:iconTint="@android:color/white" app:iconGravity="textStart" app:iconPadding="6dp" app:iconSize="16dp" android:paddingHorizontal="6dp" android:layout_weight="1" />
+        <Button android:id="@+id/btnImportClipboardDraft" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="48dp" android:layout_marginTop="0dp" android:text="글 가져오기" android:textSize="12sp" android:textStyle="bold" android:paddingHorizontal="6dp" android:layout_weight="1" android:layout_marginStart="8dp" />
+      </LinearLayout>
+      <EditText android:id="@+id/inputRichArticle" android:layout_width="match_parent" android:layout_height="0dp" android:layout_marginTop="4dp" android:background="@drawable/studio_field" android:fadeScrollbars="false" android:gravity="top|start" android:hint="생성한 글 또는 가져온 글을 확인하세요." android:inputType="textMultiLine" android:nestedScrollingEnabled="true" android:overScrollMode="always" android:padding="12dp" android:scrollbars="vertical" android:layout_weight="1" android:textSize="14sp" />
+      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="horizontal">
+        <Button android:id="@+id/btnCopyPrompt" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="2" android:backgroundTint="@color/primary" android:text="내용 복사" android:textColor="@android:color/white" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="12dp" android:paddingHorizontal="6dp" />
+        <Button android:id="@+id/btnResetPrompt" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginStart="8dp" android:text="초기화" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="12dp" android:paddingHorizontal="6dp" />
+      </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="horizontal">
+      <LinearLayout android:id="@+id/btnPickRichImages" android:layout_width="0dp" android:layout_height="76dp" android:layout_weight="1" android:background="@drawable/grid_cell_bg" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground" android:gravity="center_vertical" android:orientation="horizontal" android:padding="14dp">
+        <ImageView android:layout_width="28dp" android:layout_height="28dp" android:src="@drawable/ic_studio_photo" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:text="사진 선택&#xA;자동 배치" android:textColor="@color/text_primary" android:textSize="13sp" android:textStyle="bold" />
+      </LinearLayout>
+      <LinearLayout android:id="@+id/btnImportByLocation" android:layout_width="0dp" android:layout_height="76dp" android:layout_weight="1" android:layout_marginStart="10dp" android:background="@drawable/grid_cell_bg" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground" android:gravity="center_vertical" android:orientation="horizontal" android:padding="14dp">
+        <ImageView android:layout_width="28dp" android:layout_height="28dp" android:src="@drawable/ic_studio_place" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:text="위치로&#xA;사진 폴더" android:textColor="@color/text_primary" android:textSize="13sp" android:textStyle="bold" />
+      </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="horizontal">
+      <LinearLayout android:id="@+id/btnOpenCollageFromRich" android:layout_width="0dp" android:layout_height="76dp" android:layout_weight="1" android:background="@drawable/grid_cell_bg" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground" android:gravity="center_vertical" android:orientation="horizontal" android:padding="14dp">
+        <ImageView android:layout_width="28dp" android:layout_height="28dp" android:src="@drawable/ic_studio_collage" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:text="콜라주&#xA;만들기" android:textColor="@color/text_primary" android:textSize="13sp" android:textStyle="bold" />
+      </LinearLayout>
+      <LinearLayout android:id="@+id/btnOpenThumbnailFromRich" android:layout_width="0dp" android:layout_height="76dp" android:layout_weight="1" android:layout_marginStart="10dp" android:background="@drawable/grid_cell_bg" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground" android:gravity="center_vertical" android:orientation="horizontal" android:padding="14dp">
+        <ImageView android:layout_width="28dp" android:layout_height="28dp" android:src="@drawable/ic_studio_photo" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:text="대표사진&#xA;만들기" android:textColor="@color/text_primary" android:textSize="13sp" android:textStyle="bold" />
+      </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="horizontal">
+      <LinearLayout android:id="@+id/btnLoadCollages" android:layout_width="0dp" android:layout_height="76dp" android:layout_weight="1" android:background="@drawable/grid_cell_bg" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground" android:gravity="center_vertical" android:orientation="horizontal" android:padding="14dp">
+        <ImageView android:layout_width="28dp" android:layout_height="28dp" android:src="@drawable/ic_studio_collage" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:text="콜라주 결과&#xA;불러오기" android:textColor="@color/text_primary" android:textSize="13sp" android:textStyle="bold" />
+      </LinearLayout>
+      <LinearLayout android:id="@+id/btnLoadThumbnail" android:layout_width="0dp" android:layout_height="76dp" android:layout_weight="1" android:layout_marginStart="10dp" android:background="@drawable/grid_cell_bg" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground" android:gravity="center_vertical" android:orientation="horizontal" android:padding="14dp">
+        <ImageView android:layout_width="28dp" android:layout_height="28dp" android:src="@drawable/ic_studio_photo" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:text="대표사진 결과&#xA;가져오기" android:textColor="@color/text_primary" android:textSize="13sp" android:textStyle="bold" />
+      </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/btnShuffleRichImages" android:layout_width="match_parent" android:layout_height="60dp" android:layout_marginTop="10dp" android:background="@drawable/grid_cell_bg" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground" android:gravity="center_vertical" android:orientation="horizontal" android:paddingHorizontal="16dp">
+      <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_studio_chart" />
+      <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:text="사진 다시 랜덤 배치" android:textColor="@color/text_primary" android:textSize="13sp" android:textStyle="bold" />
+    </LinearLayout>
+    <TextView android:id="@+id/richCopyStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="사진을 선택하면 문단 사이에 자동 배치됩니다." android:textColor="@color/text_secondary" android:textSize="12sp" />
+    <LinearLayout android:id="@+id/previewSection" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+      <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="배치 미리보기" android:textColor="@color/text_primary" android:textSize="16sp" android:textStyle="bold" />
+      <LinearLayout android:id="@+id/richPreviewContainer" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/studio_output" android:orientation="vertical" android:padding="8dp" />
+      <Button android:id="@+id/btnCopyRichContent" android:layout_width="match_parent" android:layout_height="54dp" android:layout_marginTop="14dp" android:text="글과 사진 전체 한 번에 복사" />
+      <Button android:id="@+id/btnStartNaverAutoPaste" android:layout_width="match_parent" android:layout_height="54dp" android:layout_marginTop="8dp" android:text="네이버에 문단·사진 반자동 배치" />
+      <Button android:id="@+id/btnOpenNaverBlog" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="8dp" android:text="네이버 블로그 앱 열기" />
+      <View android:layout_width="match_parent" android:layout_height="24dp" />
+    </LinearLayout>
+  </LinearLayout>
+</ScrollView>

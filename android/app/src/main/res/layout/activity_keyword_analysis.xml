@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootScroll"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="키워드 분석"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="4dp" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="네이버 검색광고 API 키워드도구 - PC/모바일 검색량 · 경쟁강도"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="16dp" />
+
+        <EditText
+            android:id="@+id/inputAnalysisKeyword"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="키워드 입력 (예: 전기수리)"
+            android:layout_marginBottom="8dp" />
+        <Button
+            android:id="@+id/btnAnalyzeKeyword"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="기본 키워드 추출"
+            android:layout_marginBottom="8dp" />
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:id="@+id/resultHeaderRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@color/surface"
+            android:visibility="gone"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="2"
+                android:text="키워드" android:textStyle="bold" android:textSize="12sp" android:paddingStart="8dp" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="PC검색량" android:textStyle="bold" android:textSize="12sp" android:gravity="end" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="모바일" android:textStyle="bold" android:textSize="12sp" android:gravity="end" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="경쟁강도" android:textStyle="bold" android:textSize="12sp" android:gravity="end" android:paddingEnd="8dp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/resultsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@color/surface"
+            android:layout_marginBottom="16dp" />
+
+    </LinearLayout>
+</ScrollView>

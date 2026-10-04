@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>블로그 대표사진 만들기</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="container">
+        <h2>블로그 대표사진 만들기</h2>
+
+        <form id="thumbnail-form">
+            <label class="styled-label12">📝 텍스트 입력 (이모지: 윈도우키 + ;) </label>
+            <textarea id="text-input" placeholder="썸네일에 들어갈 텍스트 입력" rows="2"></textarea>
+            <button id="naver-title-button" class="btn-4">📄 썸네일 제목 가져오기</button>
+
+            <label class="checkbox-container">
+                <input type="checkbox" id="auto-fetch-title">
+                <span>제목 자동 가져오기</span>
+            </label>
+
+            <label class="styled-label12">🏞️ 이미지 선택</label>
+            <input type="file" id="image-input" accept="image/*">
+            <button id="clipboard-image-button" type="button" class="btn-4">📋 클립보드 이미지 가져오기</button>
+
+            <table style="border-collapse: collapse; width: 100%; border: none;">
+                <tbody>
+                    <tr>
+                        <td style="width: 40%; text-align: center; vertical-align: middle;">
+                            <label class="styled-label">📐 썸네일 크기 (가로x세로)</label>
+                        </td>
+                        <td style="width: 30%; text-align: center; vertical-align: middle;">
+                            <input type="number" id="thumbnail-width" value="400" 
+                                style="width: 80%; padding: 5px; margin: 5px; text-align: center;">
+                        </td>
+                        <td style="width: 30%; text-align: center; vertical-align: middle;">
+                            <input type="number" id="thumbnail-height" value="400" 
+                                style="width: 80%; padding: 5px; margin: 5px; text-align: center;">
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table style="border-collapse: collapse; width: 100%; border: none;" data-ke-align="alignLeft" data-ke-style="style16">
+                <tbody>
+                    <tr>
+                    <td style="width: 50%; text-align: center;">
+                        <label class="styled-label6">🖼️ 배경 이미지 선택</label>
+                        <select id="background-image-select">
+                            <option value="none" selected>배경 없음</option>
+                            <option value="bg1.jpg">1.노란색 버스트 배경</option>
+                            <option value="bg2.jpg">2.노란색 버스트 배경</option>
+                            <option value="bg3.jpg">3.노란색 버스트 배경</option>
+                            <option value="bg4.jpg">4.초록색 버스트 배경</option>
+                            <option value="bg5.jpg">5.초록색 버스트 배경</option>
+                            <option value="bg6.jpg">6.초록색 버스트 배경</option>
+                        </select>
+
+                    </td>
+                    <td style="width: 50%; text-align: center;">
+                        <label class="styled-label6">🖥️ 썸네일 비율</label>
+                        <select id="aspect-ratio">
+                            <option value="1:1" selected>1:1</option>
+                            <option value="3:2">3:2</option>
+                            <option value="16:9">16:9</option>
+                        </select>
+
+                    </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table style="border-collapse: collapse; width: 100%; border: none;" data-ke-align="alignLeft" data-ke-style="style16">
+                <tbody>
+                    <tr>
+                    <td style="width: 50%; text-align: center;">
+                        <label class="styled-label7">🎨 배경 색상</label>
+                        <select id="background-color">
+                            <option value="black">검정색</option>
+                            <option value="gold" selected>황금색</option>
+                            <option value="red">빨간색</option>
+                            <option value="blue">파란색</option>
+                            <option value="#57F711">초록색</option>
+                            <option value="yellow">노란색</option>
+                            <option value="white">흰색</option>
+                        </select>
+
+                    </td>
+                    <td style="width: 50%; text-align: center;">
+                        <label class="styled-label7">🔲 배경 테두리 색상</label>
+                        <select id="border-color">
+                            <option value="black">검정색</option>
+                            <option value="gold">황금색</option>
+                            <option value="red" selected>빨간색</option>
+                            <option value="blue">파란색</option>
+                            <option value="#57F711">초록색</option>
+                            <option value="yellow">노란색</option>
+                        </select>
+
+                    </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table style="border-collapse: collapse; width: 100%; border: none;" data-ke-align="alignLeft" data-ke-style="style16">
+                <tbody>
+                    <tr>
+                    <td style="width: 50%; text-align: center;">
+
+                        <label class="styled-label8">🖍️ 글씨 색상</label>
+                        <select id="text-color">
+                            <option value="black">검정색</option>
+                            <option value="white" selected>흰색</option>
+                            <option value="gold">황금색</option>
+                            <option value="red">빨간색</option>
+                            <option value="blue">파란색</option>
+                            <option value="#57F711">초록색</option>
+                            <option value="yellow">노란색</option>
+                        </select>
+
+                    </td>
+                    <td style="width: 50%; text-align: center;">
+                  
+                        <label class="styled-label8">✒️ 글씨 테두리 색상</label>
+                        <select id="text-outline">
+                            <option value="none">없음</option>
+                            <option value="black" selected>검정색</option>
+                            <option value="white">흰색</option>
+                            <option value="gold">황금색</option>
+                            <option value="red">빨간색</option>
+                            <option value="blue">파란색</option>
+                            <option value="#57F711">초록색</option>
+                            <option value="yellow">노란색</option>
+                        </select>
+
+                    </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <button id="generate-thumbnail" type="button" class="btn-6">🎨 썸네일 생성</button>
+
+            <div class="text-options-container">
+                <div class="font-size-container">
+                    <label class="styled-label">글씨 크기</label>
+                    <input type="number" id="font-size-input" value="70" min="20" max="200">
+                </div>
+                <div class="text-shadow-container">
+                    <label class="styled-label">그림자</label> <!-- ✅ 추가 -->
+                    <select id="text-shadow-select">
+                        <option value="none">없음</option>
+                        <option value="default">기본 그림자</option>
+                        <option value="strong" selected>강한 그림자</option>
+                    </select>
+                </div>
+            </div>
+            
+        </form>
+        <input type="color" id="text-color-picker" style="display: none;">
+        <div id="thumbnail-preview" class="thumbnail">
+            <div id="thumbnail-text" class="thumbnail-text"></div>
+        </div>
+
+        <div class="button-container">
+            <button id="save-thumbnail" class="btn-5">💾 저장</button>
+            <button id="copy-thumbnail" class="btn-5">📋 클립보드에 복사</button>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 12px;">
+        <label class="styled-label_ai">
+        <b>썸네일 만들기 [단축키]:</b> <b>Ctrl+Shift+Z</b>
+    </label>
+    </div>
+
+    <script src="html2canvas.min.js"></script>
+    <script src="popup.js"></script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

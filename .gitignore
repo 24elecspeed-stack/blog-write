@@ -1,0 +1,23 @@
+# Chrome이 확장프로그램 로드 시 자동 생성하는 런타임 캐시 (declarative_net_request 인덱싱 결과)
+extracted/_metadata/
+keyword_extension.zip
+
+# 빌드된 APK (버전별로 채팅 전달만 하고 git에는 안 올림)
+*.apk
+
+# Codex 세션 첨부파일 / 수동 테스트 로그 및 스크린샷 (소스코드 아님)
+.codex-remote-attachments/
+emulator-*.log
+full-heading-test.png
+heading-check.png
+keyword-ui.png
+layout-check.xml
+main-v310.png
+post-format-final.png
+post-format.png
+rich-layout-check.xml
+rich-v310.png
+small-main-layout.xml
+small-main.png
+small-rich.png
+test-flower.svg

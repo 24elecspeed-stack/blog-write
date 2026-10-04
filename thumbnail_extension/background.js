@@ -1,0 +1,1 @@
+chrome.commands.onCommand.addListener(o=>{"open-popup"===o&&chrome.action.openPopup()});

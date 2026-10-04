@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootScroll"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="동별 경쟁 낮은 곳 찾기"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="증상/키워드와 구·동을 조합해서 네이버 검색광고 API로 검색량을 비교하고, 가장 검색량(경쟁)이 낮은 곳을 찾아줍니다."
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="16dp" />
+
+        <EditText
+            android:id="@+id/inputKeyword"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="증상/키워드 입력 (예: 차단기내려감)"
+            android:layout_marginBottom="12dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+            <Button
+                android:id="@+id/btnRegionSeoul"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="서울" />
+            <Button
+                android:id="@+id/btnRegionGyeonggi"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="경기" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnScanDongsInDistrict"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="① 구 선택 후 그 구 동들 비교"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnScanDistricts"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="② 전체 구 대표 비교"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_secondary" />
+
+    </LinearLayout>
+</ScrollView>

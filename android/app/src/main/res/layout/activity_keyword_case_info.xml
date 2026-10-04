@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootScroll"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:orientation="vertical"
+    android:paddingHorizontal="16dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="10dp">
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="키워드와 현장 정보" android:textColor="@color/text_primary" android:textSize="16sp" android:textStyle="bold" />
+
+    <!-- 화면 높이가 기기마다 달라서(사용자 지시 - "화면 대비로 만들어") 이 아래 전체를 비율
+         기반으로 나눈다. 스크롤 없이 남은 세로 공간을 weight로 나눠 쓰므로 어떤 기기에서도
+         한 화면에 들어간다. -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="6dp" android:orientation="vertical">
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="2" android:orientation="horizontal">
+            <EditText android:id="@+id/inputDistrict" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/studio_field" android:hint="지역 · 마포구" android:paddingHorizontal="12dp" android:textColor="@color/text_primary" android:textColorHint="@color/text_secondary" android:textSize="13sp" />
+            <EditText android:id="@+id/inputDong" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="8dp" android:background="@drawable/studio_field" android:hint="동 · 성산동" android:paddingHorizontal="12dp" android:textColor="@color/text_primary" android:textColorHint="@color/text_secondary" android:textSize="13sp" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="2" android:layout_marginTop="6dp" android:orientation="horizontal">
+            <Button android:id="@+id/btnRegionSeoul" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="서울" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="10dp" />
+            <Button android:id="@+id/btnRegionGyeonggi" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="8dp" android:text="경기" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="10dp" />
+        </LinearLayout>
+        <Button android:id="@+id/btnRandomPlace" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="2" android:layout_marginTop="6dp" android:text="지역 무작위 선택" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="10dp" />
+
+        <EditText android:id="@+id/inputSymptom" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="2" android:layout_marginTop="10dp" android:background="@drawable/studio_field_focus" android:gravity="center_vertical" android:hint="검색할 증상 · 예: 화장실 콘센트 전기 안됨" android:maxLength="40" android:paddingHorizontal="12dp" android:singleLine="true" android:textColor="@color/text_primary" android:textColorHint="@color/text_secondary" android:textSize="13sp" />
+        <Button android:id="@+id/btnSearchSymptomKeyword" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="2" android:layout_marginTop="6dp" android:backgroundTint="@color/primary" android:text="키워드 분석 시작" android:textColor="@android:color/white" android:textSize="13sp" android:textStyle="bold" app:cornerRadius="10dp" />
+        <Spinner android:id="@+id/stageKeywordSpinner" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="2" android:layout_marginTop="6dp" android:background="@drawable/studio_field" android:paddingHorizontal="12dp" />
+        <TextView android:id="@+id/caseInfoStatusText" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="4dp" android:gravity="center_vertical" android:textColor="@color/primary" android:textSize="10sp" />
+
+        <EditText android:id="@+id/inputCause" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="2" android:layout_marginTop="6dp" android:background="@drawable/studio_field" android:gravity="center_vertical" android:hint="확인 원인 · 모르면 비워두기" android:paddingHorizontal="12dp" android:singleLine="true" android:textColor="@color/text_primary" android:textColorHint="@color/text_secondary" android:textSize="13sp" />
+        <EditText android:id="@+id/inputWork" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="2" android:layout_marginTop="6dp" android:background="@drawable/studio_field" android:gravity="center_vertical" android:hint="작업 내용" android:paddingHorizontal="12dp" android:singleLine="true" android:textColor="@color/text_primary" android:textColorHint="@color/text_secondary" android:textSize="13sp" />
+        <Button android:id="@+id/btnPickWorkType" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="2" android:layout_marginTop="6dp" android:text="작업 종류 선택" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="10dp" />
+        <EditText android:id="@+id/inputResult" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="2" android:layout_marginTop="6dp" android:background="@drawable/studio_field" android:gravity="center_vertical" android:hint="작업 결과 · 확인한 내용만 입력" android:paddingHorizontal="12dp" android:singleLine="true" android:textColor="@color/text_primary" android:textColorHint="@color/text_secondary" android:textSize="13sp" />
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="2" android:layout_marginTop="8dp" android:orientation="horizontal">
+            <Button android:id="@+id/btnResetCaseInfo" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="초기화" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="10dp" />
+            <Button android:id="@+id/btnApplyCaseInfo" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="2" android:layout_marginStart="8dp" android:backgroundTint="@color/accent" android:text="적용" android:textColor="@android:color/white" android:textSize="13sp" android:textStyle="bold" app:cornerRadius="10dp" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

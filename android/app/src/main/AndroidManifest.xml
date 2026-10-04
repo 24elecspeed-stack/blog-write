@@ -1,0 +1,65 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- "위치로 사진 가져오기" - 갤러리 사진들의 GPS 위치를 읽어서 구/동으로 자동 분류하는 데 필요하다. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
+    <!-- Android 11 이상에서 설치된 네이버 블로그 앱을 조회하고 직접 열기 위해 필요하다. -->
+    <!-- ChatGPT 앱도 마찬가지 - 이 선언이 없으면 앱이 설치돼 있어도 getLaunchIntentForPackage가
+         null을 반환해서 "글작성 ChatGPT 열기"가 항상 웹 브라우저로만 열렸다(사용자 지적). -->
+    <queries>
+        <package android:name="com.nhn.android.blog" />
+        <package android:name="com.openai.chatgpt" />
+    </queries>
+
+    <application android:theme="@style/Theme.KeywordResearch"
+        android:label="경쟁사 키워드 리서치" android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round">
+        <activity android:name=".MainActivity" android:screenOrientation="portrait"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <activity android:name=".ThumbnailActivity" android:screenOrientation="portrait"
+            android:exported="false" android:label="블로그 대표사진 만들기" />
+        <activity android:name=".CollageActivity" android:screenOrientation="portrait"
+            android:exported="false" android:label="콜라주 만들기" />
+        <activity android:name=".ApiSettingsActivity" android:screenOrientation="portrait"
+            android:exported="false" android:label="API 키 설정" />
+        <activity android:name=".KeywordSearchActivity" android:screenOrientation="portrait"
+            android:exported="false" android:label="키워드 검색" />
+        <activity android:name=".KeywordAnalysisActivity" android:screenOrientation="portrait"
+            android:exported="false" android:label="키워드 분석" />
+        <activity android:name=".RelatedKeywordActivity" android:screenOrientation="portrait"
+            android:exported="false" android:label="연관 키워드 추출" />
+        <activity android:name=".BlogTitleActivity" android:screenOrientation="portrait"
+            android:exported="false" android:label="블로그 검색 검증" />
+        <activity android:name=".LowCompetitionDongActivity" android:screenOrientation="portrait"
+            android:exported="false" android:label="동별 경쟁 낮은 곳 찾기" />
+        <activity android:name=".KeywordCaseInfoActivity" android:screenOrientation="portrait"
+            android:exported="false" android:label="키워드와 현장 정보" />
+        <activity android:name=".RichCopyTestActivity" android:screenOrientation="portrait"
+            android:exported="false" android:label="블로그 반자동 복사" />
+        <activity android:name=".LicenseActivity" android:screenOrientation="portrait"
+            android:exported="false" android:label="라이선스 인증" />
+        <service
+            android:name=".NaverPasteAccessibilityService"
+            android:exported="false"
+            android:label="네이버 문단·사진 반자동 배치"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/naver_paste_accessibility" />
+        </service>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+</manifest>
