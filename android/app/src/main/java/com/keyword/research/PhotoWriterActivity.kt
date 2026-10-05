@@ -353,7 +353,7 @@ class PhotoWriterActivity : AppCompatActivity() {
             return
         }
         val raw = DraftFormatter.unwrapCopyBlock(copied)
-        val bodyHtml = stripMetaComments(raw)
+        val bodyHtml = mergeStrayPhotoCaptions(stripMetaComments(raw))
         if (bodyHtml.isBlank()) {
             Toast.makeText(this, "클립보드 내용에서 글을 읽어오지 못했습니다.", Toast.LENGTH_LONG).show()
             return
@@ -542,6 +542,23 @@ class PhotoWriterActivity : AppCompatActivity() {
     private fun stripMetaComments(raw: String): String =
         raw.replace(Regex("<!--\\s*(TITLE|SUMMARY|TAGS):.*?-->\\n?"), "").trim()
 
+    // AI가 요청대로 <!-- USER_IMAGE_N: 캡션 --> 콜론 안에 캡션을 안 쓰고, 마커 바로 다음 줄에
+    // 캡션을 평범한 <p>로 따로 써버리는 경우가 있다(사용자 지적 - "캡션이 아닌 본문에 들어가고"
+    // - 실제로 보면 캡션이 일반 본문 문단처럼 보였다). 마커 바로 뒤에 짧은(60자 이하) <p>가
+    // 곧장 붙어 있으면 캡션으로 보고 주석 안으로 합쳐서, 콜론 캡션과 동일하게 처리되게 한다.
+    private fun mergeStrayPhotoCaptions(bodyHtml: String): String {
+        val pattern = Regex("<!--\\s*USER_IMAGE_(\\d+)\\s*-->\\s*<p[^>]*>(.*?)</p>", RegexOption.DOT_MATCHES_ALL)
+        return pattern.replace(bodyHtml) { match ->
+            val idx = match.groupValues[1]
+            val captionText = stripTags(match.groupValues[2]).trim()
+            if (captionText.isNotBlank() && captionText.length <= 60) {
+                "<!-- USER_IMAGE_$idx: ${captionText.replace("-->", "- ")} -->"
+            } else {
+                match.value
+            }
+        }
+    }
+
     // HTML 본문을 소제목(h2/h3)/문단(p)/목록(ul·ol)/표(table)/콜아웃(div)/사진(USER_IMAGE_N)
     // 블록 단위로 순서대로 훑어 네이버 반자동 배치용 단계로 바꾼다. 중첩 없는 평평한 블록
     // 구조라고 가정한다(요청문에서 그렇게 쓰도록 지시했다). 표·콜아웃이 renderedBlocks에
@@ -554,11 +571,13 @@ class PhotoWriterActivity : AppCompatActivity() {
                 images.getOrNull(imageIndex)?.let { uri ->
                     steps += AutoPasteState.Step.Image(uri)
                     steps += AutoPasteState.Step.MoveBelowImage
-                    // AI가 [사진 캡션: ...] 형태로 붙여준 설명을 사진 바로 아래 한 줄 텍스트로
-                    // 넣는다 - 이전에는 캡션을 통째로 버리고 있었다(사용자 지적 - "캡션도 안
-                    // 들어가고 있어").
-                    val caption = match.named("imgcap")?.let { stripTags(it) }?.trim()
-                    if (!caption.isNullOrBlank()) steps += AutoPasteState.Step.Text("$caption\n\n")
+                    // AI가 글쓰기 단계에서 주석 안에 캡션을 써주는 게 계속 안 지켜져서(사용자
+                    // 지적 - "여전히 캡션이 안들어가, 다른 방식을 찾아봐"), AI 출력에 기대지
+                    // 않고 ①단계(사진 분석)에서 이미 받아둔 설명을 우리가 직접 캡션으로 쓴다.
+                    val caption = captionFor(imageIndex).ifBlank {
+                        match.named("imgcap")?.let { stripTags(it) }?.trim().orEmpty()
+                    }
+                    if (caption.isNotBlank()) steps += AutoPasteState.Step.Text("$caption\n\n")
                 }
                 return@forEach
             }
@@ -609,15 +628,26 @@ class PhotoWriterActivity : AppCompatActivity() {
                 try { imageAsDataUri(uri) } catch (e: Exception) { null } ?: return@replace ""
             }
             val img = "<img src=\"$dataUri\" style=\"max-width:100%;height:auto;display:block;border-radius:8px;\" />"
-            // AI가 사진 자리마다 붙여준 캡션을 사진 바로 아래에 보여준다 - 이전에는 캡션 글자를
-            // 그냥 버리고 있었다(사용자 지적 - "캡션도 안 들어가고 있어").
-            val caption = groups["cap"]?.value?.trim()
-            if (renderedUri == null && !caption.isNullOrBlank()) {
-                "<figure style=\"margin:12px 0;\">$img<figcaption style=\"text-align:center;font-size:13px;color:#4A5568;margin-top:6px;\">${Html.escapeHtml(caption)}</figcaption></figure>"
-            } else {
+            // AI의 글쓰기 단계 출력에서 캡션을 뽑는 방식이 계속 불안정해서(사용자 지적 - "여전히
+            // 캡션이 안들어가, 다른 방식을 찾아봐"), ①단계(사진 분석)에서 이미 받아둔 설명을
+            // 우리가 직접 캡션으로 쓴다 - AI가 글쓰기 단계에서 캡션을 빠뜨려도 항상 나온다.
+            val caption = groups["idx"]?.value?.toIntOrNull()?.let { captionFor(it) }
+                ?.ifBlank { groups["cap"]?.value?.trim().orEmpty() }
+            if (renderedUri != null || caption.isNullOrBlank()) {
                 "<div style=\"margin:12px 0;\">$img</div>"
+            } else {
+                "<figure style=\"margin:12px 0;\">$img<figcaption style=\"text-align:center;font-size:13px;color:#4A5568;margin-top:6px;\">${Html.escapeHtml(caption)}</figcaption></figure>"
             }
         }
+    }
+
+    // ①단계(사진 분석)에서 받아둔 설명을 캡션 길이에 맞게 줄여서 쓴다 - 글쓰기 단계 AI 출력에
+    // 의존하지 않는 자체 캡션 소스(사용자 지시 - "기존 방식으로는 안 들어가는 거 같아 다른
+    // 방식을 찾아봐").
+    private fun captionFor(index: Int): String {
+        val desc = photoDescriptions.getOrNull(index)?.trim().orEmpty()
+        if (desc.isBlank()) return ""
+        return if (desc.length > 40) desc.take(40).trimEnd() + "…" else desc
     }
 
     private fun renderedBlockAsDataUri(uri: Uri): String {
@@ -784,14 +814,44 @@ class PhotoWriterActivity : AppCompatActivity() {
         return FileProvider.getUriForFile(this, "$packageName.fileprovider", target)
     }
 
+    // 사진의 EXIF Orientation 태그를 읽어 픽셀 자체를 돌려놓는다. BitmapFactory.decodeStream은
+    // EXIF를 무시하고 저장된 픽셀 그대로 읽고, Bitmap.compress()로 만든 순수 바이트 배열에는
+    // EXIF를 다시 써넣을 파일이 없어 원본 방향 정보가 통째로 사라진다 - data URI로 들어간
+    // 사진이 미리보기에서 90도 돌아가 보이던 원인(사용자가 실기기로 확인).
+    private fun applyExifRotation(source: Uri, bitmap: Bitmap): Bitmap {
+        val orientation = try {
+            contentResolver.openInputStream(source)?.use { stream ->
+                androidx.exifinterface.media.ExifInterface(stream).getAttributeInt(
+                    androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,
+                    androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL
+                )
+            } ?: androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL
+        } catch (e: Exception) {
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL
+        }
+        val matrix = android.graphics.Matrix()
+        when (orientation) {
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+            else -> return bitmap
+        }
+        val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        if (rotated !== bitmap) bitmap.recycle()
+        return rotated
+    }
+
     private fun imageAsDataUri(source: Uri): String {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         contentResolver.openInputStream(source).use { BitmapFactory.decodeStream(it, null, bounds) }
         var sample = 1
         while (bounds.outWidth / sample > 900 || bounds.outHeight / sample > 900) sample *= 2
         val options = BitmapFactory.Options().apply { inSampleSize = sample }
-        val decoded = contentResolver.openInputStream(source).use { BitmapFactory.decodeStream(it, null, options) }
+        val decodedRaw = contentResolver.openInputStream(source).use { BitmapFactory.decodeStream(it, null, options) }
             ?: error("사진을 변환할 수 없습니다.")
+        val decoded = applyExifRotation(source, decodedRaw)
         val ratio = minOf(1f, 640f / maxOf(decoded.width, decoded.height))
         val scaledRaw = if (ratio < 1f) Bitmap.createScaledBitmap(decoded, (decoded.width * ratio).toInt(), (decoded.height * ratio).toInt(), true) else decoded
         if (scaledRaw !== decoded) decoded.recycle()

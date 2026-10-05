@@ -1009,14 +1009,43 @@ class RichCopyTestActivity : AppCompatActivity() {
         return FileProvider.getUriForFile(this, "$packageName.fileprovider", target)
     }
 
+    // 사진의 EXIF Orientation 태그를 읽어 픽셀 자체를 돌려놓는다 - BitmapFactory.decodeStream은
+    // EXIF를 무시하고 저장된 픽셀 그대로 읽어서, 세로로 찍었지만 가로로 저장된 사진이 그대로
+    // 옆으로 눕는다(사용자가 실기기로 확인).
+    private fun applyExifRotation(source: Uri, bitmap: Bitmap): Bitmap {
+        val orientation = try {
+            contentResolver.openInputStream(source)?.use { stream ->
+                androidx.exifinterface.media.ExifInterface(stream).getAttributeInt(
+                    androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,
+                    androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL
+                )
+            } ?: androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL
+        } catch (e: Exception) {
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL
+        }
+        val matrix = android.graphics.Matrix()
+        when (orientation) {
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+            else -> return bitmap
+        }
+        val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        if (rotated !== bitmap) bitmap.recycle()
+        return rotated
+    }
+
     private fun imageAsDataUri(source: Uri): String {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         contentResolver.openInputStream(source).use { BitmapFactory.decodeStream(it, null, bounds) }
         var sample = 1
         while (bounds.outWidth / sample > 900 || bounds.outHeight / sample > 900) sample *= 2
         val options = BitmapFactory.Options().apply { inSampleSize = sample }
-        val decoded = contentResolver.openInputStream(source).use { BitmapFactory.decodeStream(it, null, options) }
+        val decodedRaw = contentResolver.openInputStream(source).use { BitmapFactory.decodeStream(it, null, options) }
             ?: error("사진을 변환할 수 없습니다.")
+        val decoded = applyExifRotation(source, decodedRaw)
         val ratio = minOf(1f, 640f / maxOf(decoded.width, decoded.height))
         val scaledRaw = if (ratio < 1f) Bitmap.createScaledBitmap(decoded, (decoded.width * ratio).toInt(), (decoded.height * ratio).toInt(), true) else decoded
         if (scaledRaw !== decoded) decoded.recycle()
