@@ -8,8 +8,10 @@ package com.keyword.research
 //   1단계(buildVisionAnalysisPrompt) - 사진만 보고 JSON으로 피사체·시각 디테일을 분석해 받는다.
 //   2단계(build) - 1단계에서 받은 분석 결과를 "사전 분석된 사진 목록"으로 그대로 넣고 글을 쓴다
 //                  (원본의 imageCatalog 비-커스텀 모드 블록과 동일한 형태).
-// 원본이 지도 사진 글자만 "흐릿해도 최선을 다해 정확히" 읽으라고 한 것은, 사진 전반(라벨·계기판·
-// 제품명 등)으로 넓혀서 1단계 분석 지침에 넣었다(사용자 지적 - "사진 OCR을 잘못하고 있어").
+// 지도 사진 글자(주소·핀 라벨 등)만 "흐릿해도 최선을 다해 정확히" 읽으라는 원본 문구를 한 번
+// 사진 전반(라벨·계기판·제품명 등)으로 넓혔었는데, 그러면서 제미나이가 분석을 너무 길게 쓰기
+// 시작해서(사용자 지적 - "계속해서 길게 나오네") 원본처럼 지도 글자로만 범위를 다시 좁혔다
+// (사용자 지시 - "원래 딸깍 사진 ocr하는 명령문으로 다시 돌려").
 //
 // 이 앱만의 추가 레이어(원본엔 없음, 전부 사용자가 별도로 요청한 것):
 // - 글 내용은 메인 화면 "키워드와 현장 정보"의 키워드·사실관계를 그대로 따른다.
@@ -40,25 +42,68 @@ object PhotoWriterPromptBuilder {
     private fun calloutLabelFor(blogId: Int): String =
         calloutLabels[((blogId - 1).mod(calloutLabels.size))]
 
-    // 1단계 - 원본 buildVisionBatchPrompt를 그대로 옮겼다(10장 단위 배치 전송은 수동 흐름에
-    // 맞지 않아 뺐다 - 사용자가 한 번에 전부 첨부한다).
-    fun buildVisionAnalysisPrompt(photoCount: Int): String = buildString {
-        val lastIdx = (photoCount - 1).coerceAtLeast(0)
+    // 원본 cleanFileName(sidepanel.js:485) 그대로 - 확장자 제거 → 앞쪽 숫자+구분자 제거 →
+    // 남은 _/- 를 공백으로 → trim. "20241201_161517.jpg" -> "161517".
+    private fun cleanFileName(filename: String): String {
+        if (filename.isBlank()) return ""
+        return filename
+            .replace(Regex("\\.[a-zA-Z0-9]+$"), "")
+            .replace(Regex("^[0-9]+[_\\s.-]*"), "")
+            .replace(Regex("[_\\-]+"), " ")
+            .trim()
+    }
+
+    // 1단계 - 원본 buildVisionBatchPrompt(sidepanel.js:1327)를 그대로 옮겼다(10장 단위 배치
+    // 전송은 수동 흐름에 맞지 않아 뺐다 - 사용자가 한 번에 전부 첨부한다). 처음 포팅할 때
+    // topic/content(핵심 내용), 사진 파일 목록, map_location JSON 필드가 전부 빠져서 AI가
+    // 주제와 무관한 일반적인 묘사("깔끔한 하얀색 타일 벽면에...")를 썼다(사용자 지적 - "캡션이
+    // 엄청 길잖아" / "전기수리에 대한 이야기만 쓰라고 해" / 실제 원본 출력 전문을 붙여넣으며
+    // "이게 원본인데 어디서 가지고 온거야"). 사용자가 붙여넣은 실제 원본 출력과 한 글자씩
+    // 대조해서 그대로 복구했다. 끝의 "[중요] Canvas나 몰입형 문서..." 문구는 buildVisionBatchPrompt
+    // 자체가 아니라 background.js:631(sendPromptToGemini)에서 Gemini로 보낼 때 자동으로
+    // 덧붙이는 문구인데, 원본이 실제로 Gemini에 보내는 최종 텍스트에는 포함되므로 그대로 넣는다.
+    fun buildVisionAnalysisPrompt(
+        photoCount: Int,
+        topic: String = "",
+        content: String = "",
+        photoNames: List<String> = emptyList()
+    ): String = buildString {
         append("당신은 세계 최고 수준의 멀티모달 비전 AI이자 전문 블로그 콘텐츠 기획자입니다.\n")
-        append("이 요청문 바로 다음에 사진 ${photoCount}장을 0번부터 ${lastIdx}번까지 순서대로 첨부할 거예요. ")
-        append("각 사진을 순서대로 직접 눈으로 확인하고 **사진의 시각적 특징을 정확하고 생생하게 분석**해 주세요. 분석 결과는 나중에 이 사진들로 블로그 글을 쓸 때 그대로 사용할 거예요.\n\n")
-        append("[시각 분석 지침]\n")
+        append("작성 예정인 블로그 글의 주제와 핵심 내용을 바탕으로, 대화창에 첨부된 ${photoCount}장의 사진을 순서대로 직접 눈으로 확인하고 **글의 맥락에 맞춰 사진의 시각적 특징을 정확하고 생생하게 분석**해 주세요.\n")
+        if (topic.isNotBlank() || content.isNotBlank()) {
+            append("\n[작성 예정인 블로그 글 정보 (시각 분석 참조 맥락)]\n")
+            append("- 포스팅 주제/키워드: ${topic.ifBlank { "블로그 포스팅" }}\n")
+            if (content.isNotBlank()) {
+                val brief = if (content.length > 800) content.take(800) + "... (이하 생략)" else content
+                append("- 작성할 핵심 내용 및 컨셉:\n$brief\n")
+            }
+            append("\n")
+        }
+        append("[첨부된 사진 목록]\n")
+        for (i in 0 until photoCount) {
+            val name = photoNames.getOrNull(i).orEmpty()
+            val clean = cleanFileName(name)
+            val nameInfo = if (name.isNotBlank()) " (파일명: $name${if (clean.isNotBlank()) " / 정제키워드: $clean" else ""})" else ""
+            append("- [사진 #$i]: 대화창 첨부 순서 ${i + 1}번째 사진$nameInfo\n")
+        }
+        append("\n[맥락 맞춤형 시각 분석 지침]\n")
         append("각 사진에 대해:\n")
-        append("1. **피사체 파악**: 사진에 실제로 찍힌 피사체와 장면을 정확히 식별하세요.\n")
-        append("2. **블로그 서사용 시각 디테일**: 글에서 독자의 공감을 이끌 수 있는 핵심 시각적 특징(상태, 색감, 질감, 각도 등)을 포착하세요.\n")
+        append("1. **맥락에 부합하는 피사체 파악**: 작성할 글 정보(제품명, 브랜드, 매장 등)를 고려하여 실제로 사진에 찍힌 피사체와 장면을 정확히 식별하세요. (예: 단순 '노트북'이 아닌 '갤럭시북4 메탈 그레이 상판 디자인', 단순 '연결 구멍'이 아닌 '풀사이즈 HDMI 및 C타입 단자 구성')\n")
+        append("2. **블로그 서사용 시각 디테일**: 글에서 독자의 공감을 이끌 수 있는 핵심 시각적 특징(색감, 질감, 마감 디테일, 화면 선명도, 힌지 각도 등)을 포착하세요.\n")
         append("3. **본문 삽입 묘사 포인트**: 블로그 본문 단락 사이에 사진을 넣었을 때 바로 활용할 수 있는 생생하고 매력적인 한 줄 묘사 포인트를 작성해 주세요.\n")
-        append("아주 중요 - 사진 속에 글자(차단기나 제품에 적힌 라벨·모델명, 계기판 숫자, 표지판, 지도 속 주소 등)가 보이면 추측하지 말고 눈에 보이는 그대로 정확히 읽어서 반영하세요. 글자가 작거나 흐릿해도 최선을 다해 읽고, 정말 읽을 수 없으면 언급하지 마세요 - 안 보이는 글자를 그럴듯하게 지어내는 건 절대 안 됩니다.\n\n")
-        append("반드시 아래 규격의 순수 JSON으로만 출력해 주세요(설명, 인사말, 코드블록 없이 JSON 그 자체만):\n")
+        append("4. **지도 사진 판별**: 사진이 네이버지도·카카오맵·구글맵 등 지도(위치 검색) 화면 캡처인지 하나씩 확인하세요. 지도 화면이 맞다면, 화면에 보이는 텍스트(마커 옆 주소, 상단 검색창, 핀 라벨 등)에서 \"시/도 + 구/군 + 동/읍/면\" 중 읽을 수 있는 만큼 최대한 정확히 읽어 \"map_location\" 필드에 적으세요. 글자가 작거나 흐릿해도 최선을 다해 읽어 보고, 일부만 보이면 보이는 부분만이라도 적으세요. 지도 화면이 아니면 \"map_location\"은 반드시 null로 두세요.\n\n")
+        append("반드시 아래 규격의 순수 JSON으로만 출력해 주세요:\n")
         append("{\n")
         append("  \"analyses\": [\n")
-        append("    { \"index\": 0, \"subject\": \"사진 속 피사체 요약\", \"visual_description\": \"사진의 실제 시각적 디테일 상세 묘사\" }\n")
+        append("    {\n")
+        append("      \"index\": 0,\n")
+        append("      \"subject\": \"맥락 기반 피사체 요약\",\n")
+        append("      \"visual_description\": \"글 흐름에 최적화된 사진의 실제 시각적 디테일 상세 묘사\",\n")
+        append("      \"map_location\": \"지도 사진인 경우 읽은 지역명(예: 서울 강남구 역삼동), 지도가 아니면 null\"\n")
+        append("    }\n")
         append("  ]\n")
-        append("}")
+        append("}\n\n")
+        append("[중요] 반드시 일반 채팅 말풍선 안에 ```html 코드블록으로만 답변하세요. Canvas나 몰입형 문서(Immersive) 모드를 사용하지 마세요.")
     }
 
     // 2단계 - 원본 buildUserArticlePromptWithAnalysis를 그대로 옮겼다. photoDescriptions는

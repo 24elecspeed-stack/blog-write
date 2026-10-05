@@ -9,8 +9,8 @@ android {
         applicationId = "com.ddalkkak.photowriter"
         minSdk = 29
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 8
+        versionName = "1.6"
         buildConfigField("String", "PASTE_SERVICE_CLASS", "\"com.keyword.research.NaverPasteAccessibilityService\"")
     }
     compileOptions {

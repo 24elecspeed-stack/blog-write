@@ -71,6 +71,7 @@ class PhotoWriterActivity : AppCompatActivity() {
     // 콜아웃/사진 블록 단위로 훑어서 만든다.
     private var naverSteps: List<AutoPasteState.Step> = emptyList()
 
+
     private var watermarkText: String = ""
     private var watermarkTypeface: android.graphics.Typeface = android.graphics.Typeface.DEFAULT
 
@@ -197,6 +198,22 @@ class PhotoWriterActivity : AppCompatActivity() {
         return Long.MAX_VALUE
     }
 
+    // 원본은 사진 목록에 실제 파일명(및 그걸 정제한 키워드)을 넣어 AI가 참고하게 했다
+    // (sidepanel.js의 cleanFileName) - 포팅할 때 이 부분이 빠져 있었다(사용자가 실제 원본
+    // 출력 전문을 붙여넣으며 지적).
+    private fun displayNameFor(uri: Uri): String {
+        return try {
+            contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (idx >= 0) cursor.getString(idx) else null
+                } else null
+            } ?: ""
+        } catch (e: Exception) {
+            ""
+        }.orEmpty()
+    }
+
     private fun updatePhotoCount() {
         photoCountText.text = if (selectedImages.isEmpty()) "선택된 사진 없음" else "선택된 사진 ${selectedImages.size}장"
     }
@@ -211,7 +228,12 @@ class PhotoWriterActivity : AppCompatActivity() {
         }
         promptImages = selectedImages.toList()
         photoDescriptions = emptyList()
-        val prompt = PhotoWriterPromptBuilder.buildVisionAnalysisPrompt(promptImages.size)
+        val prompt = PhotoWriterPromptBuilder.buildVisionAnalysisPrompt(
+            photoCount = promptImages.size,
+            topic = SearchState.lastKeyword.trim(),
+            content = SearchState.informationalCaseInfoBlock?.trim().orEmpty(),
+            photoNames = promptImages.map { displayNameFor(it) }
+        )
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("photo-writer-vision-prompt", prompt))
         status.text = "① 사진 분석 요청문을 복사했습니다 · AI 앱에 붙여넣고 사진 ${promptImages.size}장을 같은 순서로 첨부해주세요."
@@ -571,12 +593,8 @@ class PhotoWriterActivity : AppCompatActivity() {
                 images.getOrNull(imageIndex)?.let { uri ->
                     steps += AutoPasteState.Step.Image(uri)
                     steps += AutoPasteState.Step.MoveBelowImage
-                    // AI가 글쓰기 단계에서 주석 안에 캡션을 써주는 게 계속 안 지켜져서(사용자
-                    // 지적 - "여전히 캡션이 안들어가, 다른 방식을 찾아봐"), AI 출력에 기대지
-                    // 않고 ①단계(사진 분석)에서 이미 받아둔 설명을 우리가 직접 캡션으로 쓴다.
-                    val caption = captionFor(imageIndex).ifBlank {
-                        match.named("imgcap")?.let { stripTags(it) }?.trim().orEmpty()
-                    }
+                    val aiCaption = match.named("imgcap")?.let { stripTags(it) }?.trim().orEmpty()
+                    val caption = getSmartImageCaption(imageIndex, aiCaption)
                     if (caption.isNotBlank()) steps += AutoPasteState.Step.Text("$caption\n\n")
                 }
                 return@forEach
@@ -628,11 +646,14 @@ class PhotoWriterActivity : AppCompatActivity() {
                 try { imageAsDataUri(uri) } catch (e: Exception) { null } ?: return@replace ""
             }
             val img = "<img src=\"$dataUri\" style=\"max-width:100%;height:auto;display:block;border-radius:8px;\" />"
-            // AI의 글쓰기 단계 출력에서 캡션을 뽑는 방식이 계속 불안정해서(사용자 지적 - "여전히
-            // 캡션이 안들어가, 다른 방식을 찾아봐"), ①단계(사진 분석)에서 이미 받아둔 설명을
-            // 우리가 직접 캡션으로 쓴다 - AI가 글쓰기 단계에서 캡션을 빠뜨려도 항상 나온다.
-            val caption = groups["idx"]?.value?.toIntOrNull()?.let { captionFor(it) }
-                ?.ifBlank { groups["cap"]?.value?.trim().orEmpty() }
+            // 원본 getSmartImageCaption과 동일하게, AI가 글쓰기 단계(②단계) 주석 안에 직접 쓴
+            // 25자 안팎 캡션을 우선 쓴다(사용자 지적 - "지금 캡션이 엄청 길잖아" - 파싱 버그로
+            // 이 캡션을 못 읽던 때를 ①단계 설명으로 덮어쓰도록 고친 게 원인이었고, 그 순서를
+            // 거꾸로 돌려놓은 게 이번 수정이다. AI가 캡션을 안 쓴 게 아니었다). imageIndex가
+            // 있을 때만 getSmartImageCaption으로 나머지 보완 단계(파일명 → ①단계 설명 → 기본
+            // 라벨)를 적용한다.
+            val imageIdx = groups["idx"]?.value?.toIntOrNull()
+            val caption = imageIdx?.let { getSmartImageCaption(it, groups["cap"]?.value.orEmpty()) }.orEmpty()
             if (renderedUri != null || caption.isNullOrBlank()) {
                 "<div style=\"margin:12px 0;\">$img</div>"
             } else {
@@ -641,13 +662,45 @@ class PhotoWriterActivity : AppCompatActivity() {
         }
     }
 
-    // ①단계(사진 분석)에서 받아둔 설명을 캡션 길이에 맞게 줄여서 쓴다 - 글쓰기 단계 AI 출력에
-    // 의존하지 않는 자체 캡션 소스(사용자 지시 - "기존 방식으로는 안 들어가는 거 같아 다른
-    // 방식을 찾아봐").
-    private fun captionFor(index: Int): String {
+    // 원본 cleanFileName(sidepanel.js:485)과 동일 - PhotoWriterPromptBuilder의 private
+    // 버전과 똑같은 로직을 캡션 보완에도 써야 해서 여기 한 번 더 둔다.
+    private fun cleanFileName(filename: String): String {
+        if (filename.isBlank()) return ""
+        return filename
+            .replace(Regex("\\.[a-zA-Z0-9]+$"), "")
+            .replace(Regex("^[0-9]+[_\\s.-]*"), "")
+            .replace(Regex("[_\\-]+"), " ")
+            .trim()
+    }
+
+    // 원본 getSmartImageCaption(sidepanel.js:2530)을 그대로 옮겼다. AI가 ②단계(글쓰기) 주석에
+    // 직접 쓴 캡션을 최우선으로 쓰고("사진 1" 같은 의미 없는 값은 무시), 없으면 순서대로
+    // (의미 있는 파일명 키워드 → ①단계 시각 분석 설명의 첫 구절(3~40자) → 기본 라벨)로 내려가며
+    // 보완한다. 전에는 이 순서가 아니라 ①단계 설명 전체를 40자로 잘라서 항상 먼저 썼는데,
+    // 그게 AI가 ②단계에 써준 캡션을 덮어써서 캡션이 과도하게 길어졌다(사용자 지적 - "지금
+    // 캡션이 엄청 길잖아" / "니가 캡션 몇번 잘못해서 안나와서 니가 넣은거잖아" - AI가 캡션을
+    // 안 쓴 게 아니라 Claude의 파싱 버그로 못 읽던 것을 이런 식으로 덮어써서 "고친" 것이었다).
+    // 원본의 2번째 단계(사용자가 직접 입력한 사진 메모)는 이 앱에 그런 입력란이 없어서 뺐다.
+    private fun getSmartImageCaption(index: Int, aiCaptionHint: String): String {
+        val hint = aiCaptionHint.trim()
+        if (hint.isNotBlank() && !Regex("^사진\\s*\\d+$").matches(hint)) return hint
+
+        val name = promptImages.getOrNull(index)?.let { displayNameFor(it) }.orEmpty()
+        if (name.isNotBlank()) {
+            val clean = cleanFileName(name)
+            if (clean.length >= 2 && !Regex("^(IMG|DSC|PHOTO|IMAGE|KakaoTalk|Screenshot|Capture)[0-9_ -]*$", RegexOption.IGNORE_CASE).matches(clean)) {
+                return clean
+            }
+        }
+
         val desc = photoDescriptions.getOrNull(index)?.trim().orEmpty()
-        if (desc.isBlank()) return ""
-        return if (desc.length > 40) desc.take(40).trimEnd() + "…" else desc
+        if (desc.isNotBlank()) {
+            val stripped = desc.replace(Regex("^[^:]+:\\s*"), "").replace(Regex("^[-*]\\s*"), "")
+            val firstClause = Regex("[\\n,]|(?<=[가-힣a-zA-Z])\\.\\s+").split(stripped).firstOrNull()?.trim().orEmpty()
+            if (firstClause.length in 3..40) return firstClause
+        }
+
+        return if (index == 0) "대표 사진" else "상세 컷 ${index + 1}"
     }
 
     private fun renderedBlockAsDataUri(uri: Uri): String {

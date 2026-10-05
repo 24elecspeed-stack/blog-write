@@ -1,3 +1,14 @@
+## 2026-10-05 v1.6 (com.ddalkkak.photowriter "BlogTouch") - 사진 분석/글쓰기 프롬프트를 딸깍 원본과 완전히 재대조, 캡션 우선순위 버그 수정
+
+⚠️ **이 작업은 사용자가 실제 원본 실행 결과 전문을 직접 복사해서 붙여넣은 뒤에야 발견됐다** - Claude가 포팅한 1단계(사진 분석) 프롬프트가 원본과 다르다는 걸 스스로 찾지 못했고, 사용자가 "이게 원본인데 어디서 가지고 온거야"라며 실제 출력을 붙여넣고 나서야 비교해서 고쳤다. [[feedback-photowriter-prompt-must-match-original]] 메모리 참고 - 이 프롬프트를 다시 고칠 때는 반드시 `ddalkkak-extracted/photo-writer/sidepanel.js`를 직접 읽고 한 글자씩 대조할 것.
+
+- **1단계(사진 분석) 프롬프트 복구** (`PhotoWriterPromptBuilder.buildVisionAnalysisPrompt`) - 포팅 때 빠졌던 걸 원본(`sidepanel.js:1327` `buildVisionBatchPrompt`)과 전부 다시 맞췄다: `topic`(키워드)·`content`(현장정보) 컨텍스트 섹션, 사진 파일명·정제키워드 목록(`cleanFileName` 포팅), `map_location` JSON 필드, 끝의 "Canvas나 몰입형 문서 금지" 안내문(이건 `sidepanel.js`가 아니라 `background.js:631`의 `sendPromptToGemini`에서 자동으로 덧붙이는 문구인데, 원본이 실제로 Gemini에 보내는 최종 텍스트 기준으로 맞췄다). `copyVisionPrompt()`에서 `SearchState.lastKeyword`/`informationalCaseInfoBlock`/사진 파일명(`displayNameFor`)을 넘기도록 호출부도 수정.
+- **1단계 OCR 지침 범위 축소** - 전 세션에 "사진 전반(라벨·계기판·제품명 등)"으로 넓혔던 게 원본에 없는 범위 확장이었고, 그 때문에 Gemini가 분석을 너무 길게 썼다(사용자 지적 - "캡션이 엄청 길잖아"). 원본처럼 지도 글자 전용(`map_location`)으로 되돌림.
+- ⭐ **캡션이 길게 나오는 진짜 원인 발견 및 수정** - 이전 세션에 "캡션이 안 들어가"를 고치려고 만든 `captionFor()`(①단계 설명을 40자로 자른 것)가 AI가 ②단계 주석에 직접 쓴 25자 캡션보다 **먼저** 쓰이고 있었다. 원본은 AI가 ②단계에 쓴 캡션을 최우선으로 쓰고, 없을 때만 순서대로(파일명 키워드 → ①단계 설명 첫 구절(3~40자) → 기본 라벨 "대표 사진"/"상세 컷 N")로 내려가며 보완한다(`getSmartImageCaption`, `sidepanel.js:2530`). 이 우선순위를 그대로 포팅해서 `captionFor()`를 대체했다 - 사용자 지적대로 "AI가 캡션을 빠뜨린 게 아니라 Claude의 파싱 버그로 못 읽던 걸 이런 식으로 덮어써서 고친 것"이었다.
+- **시도했다가 사용자가 되돌린 것**: "캡션 채우기" 버튼(글 다 쓴 뒤 네이버 실제 캡션 입력칸들을 `ACTION_SET_TEXT`로 자동으로 채우는 2차 기능, `AutoPasteState.captionQueue`/`NaverPasteAccessibilityService.fillVisibleCaptions()`) - 실기기 테스트에서 "전혀 안움직여"(반응 없음)로 실패해서 전부 제거했다. **이 방식은 다시 시도하지 말 것** - 사용자가 명시적으로 "하지 말라고 지워"라고 지시함. 실패 원인은 미확인(토스트 메시지가 떴는지, 버튼을 누른 시점에 어느 화면이었는지 확인 전에 제거됨).
+- 버전 `1.6`(`versionCode 8`)로 올림. (v1.2는 캡션 입력칸 자동 타이핑 시도였다가 "멈추는" 문제로 롤백, v1.3은 OCR 지침만 축소, v1.4는 1단계 프롬프트 원본 복구, v1.5는 캡션 우선순위 수정, v1.6은 "캡션 채우기" 버튼 시도 후 제거.)
+- 미검증: v1.6이 실제로 "캡션이 짧고 정확하게 나온다"는 걸 실기기로 확인 안 됨 - 다음 세션에서 확인 필요.
+
 ## 2026-10-05 v1.1 (com.ddalkkak.photowriter "BlogTouch") - EXIF 회전/캡션 본문 유입 버그 수정, 네이버 실앱 캡션 미표시는 미해결
 
 - **사진 90도 회전 버그 수정** - `BitmapFactory.decodeStream`은 EXIF Orientation 태그를 무시하고 저장된 픽셀 그대로 읽어서, 세로로 찍었지만 EXIF 회전 플래그가 붙은 사진이 미리보기에서 옆으로 누워 보였다(사용자가 실기기로 확인). `applyExifRotation()`(EXIF 읽어서 `Matrix`로 픽셀 자체를 미리 돌려놓음)을 `PhotoWriterActivity.imageAsDataUri()`와 `RichCopyTestActivity.imageAsDataUri()` 양쪽에 추가.
