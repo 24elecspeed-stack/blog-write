@@ -71,6 +71,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnOpenLowCompetitionDong).setOnClickListener { startActivity(Intent(this, LowCompetitionDongActivity::class.java)) }
         findViewById<View>(R.id.btnOpenKeywordCaseInfo).setOnClickListener { startActivity(Intent(this, KeywordCaseInfoActivity::class.java)) }
         findViewById<View>(R.id.btnOpenPhotoWriter).setOnClickListener { startActivity(Intent(this, PhotoWriterActivity::class.java)) }
+        findViewById<View>(R.id.btnOpenAdWidget).setOnClickListener { startActivity(Intent(this, AdWidgetActivity::class.java)) }
         findViewById<View>(R.id.btnOpenRichCopyTest).setOnClickListener {
             // "콘텐츠 생성"과 "키워드와 현장 정보"가 이제 각각 별도 화면에 있으므로(사용자 요청 -
             // 카드 대시보드 방식), 사례 정보는 KeywordCaseInfoActivity가 나갈 때마다 SearchState에

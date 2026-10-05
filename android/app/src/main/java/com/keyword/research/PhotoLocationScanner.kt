@@ -52,7 +52,7 @@ object PhotoLocationScanner {
         return results
     }
 
-    private fun readGps(context: Context, uri: Uri): Pair<Double, Double>? {
+    fun readGps(context: Context, uri: Uri): Pair<Double, Double>? {
         return try {
             // Android 10+에서는 ACCESS_MEDIA_LOCATION 권한 + setRequireOriginal로 감싼 URI라야
             // EXIF의 GPS 값이 리다크션(삭제) 없이 그대로 나온다.

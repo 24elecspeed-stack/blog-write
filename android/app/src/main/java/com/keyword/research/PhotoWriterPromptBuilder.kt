@@ -114,7 +114,9 @@ object PhotoWriterPromptBuilder {
         caseInfo: String?,
         editorialRules: String,
         blogProfile: BlogProfileEntry,
-        photoDescriptions: List<String>
+        photoDescriptions: List<String>,
+        districtDong: String? = null,
+        informational: Boolean = true
     ): String = buildString {
         val calloutLabel = calloutLabelFor(blogProfile.id)
         val hasImages = photoDescriptions.isNotEmpty()
@@ -127,7 +129,14 @@ object PhotoWriterPromptBuilder {
         // 이 앱만의 레이어: 글 내용은 키워드 현장 정보를 그대로 따른다(사용자 지시).
         append("[제목 키워드]: $keyword\n\n")
         append(editorialRules).append("\n")
-        append(PromptBuilder.informationalGuardrails())
+        // "반자동 글쓰기"(RichCopyTestActivity/WritingStyle.PromptBuilder.build())와 동일하게
+        // informational일 때만 붙인다(사용자 요청 - "반자동 글쓰기처럼 선택을 해야 글을
+        // 쓰게끔 해줘" - 출장 사례형/정보형을 고르게 하면서 발견한 버그: 이전엔 이 함수가
+        // 항상 정보성 모드 전용이라 informationalGuardrails()를 무조건 붙였는데, 그대로 두면
+        // 출장 사례형을 골라도 "출장 서술 금지" 지침이 섞여 들어간다).
+        if (informational) {
+            append(PromptBuilder.informationalGuardrails())
+        }
         if (!caseInfo.isNullOrBlank()) {
             append(caseInfo).append("\n")
         }
@@ -137,7 +146,11 @@ object PhotoWriterPromptBuilder {
         append("[이 블로그만의 문체·소제목 관점 - 다른 블로그와 겹치지 않게 반드시 지켜줘]\n")
         append("${blogProfile.voiceHint}\n")
         append("${blogProfile.openingStyle}\n")
-        append("위 문체에 방문, 도착, 현장 작업, 고객 경험을 전제로 한 표현이 있으면 적용하지 말고 순수 정보형 서술을 유지해.\n")
+        // 정보형일 때만 "방문/도착/현장 경험" 식 표현을 빼고 순수 정보 서술로 바꾼다 - 출장
+        // 사례형은 반대로 실제 방문·작업 경험을 그대로 써야 하므로 이 지침을 넣지 않는다.
+        if (informational) {
+            append("위 문체에 방문, 도착, 현장 작업, 고객 경험을 전제로 한 표현이 있으면 적용하지 말고 순수 정보형 서술을 유지해.\n")
+        }
         append("아주 중요 - 소제목 문장도 반드시 위 문체·관점에 맞춰 짓고, 다른 블로그가 쓸 법한 뻔한 틀(예: \"OOO 현장 점검해보니\", \"OOO 교체 작업 진행해봤더니\", \"OOO 최종 완료 후기\")을 그대로 따라 쓰지 마. 어휘와 문장 구조 자체를 이 블로그만의 관점으로 다르게 써줘.\n")
         append("제목 표기: ${blogProfile.titleInstruction}\n\n")
 
@@ -169,6 +182,13 @@ object PhotoWriterPromptBuilder {
         append("1. ⭐ [필수 HTML 태그] 본문의 모든 일반 문단은 반드시 <p> 태그로 감싸고, \"1. ~\", \"2. ~\"처럼 번호가 붙는 큰 소제목은 반드시 예외 없이 아래 스타일 그대로 <h2> 태그로 작성하세요 (굵은 글씨는 오직 이 h2에만 적용):\n")
         append("   <h2 style=\"border: 2px solid $ACCENT; background-color: $HEADING_BG; padding: 15px; font-size: 28px; color: $HEADING_TEXT; font-weight: bold; margin: 20px 0;\">1. 소제목</h2>\n")
         append("   (글자색만 있고 테두리·배경 박스가 없는 민짜 소제목은 금지입니다!) 큰 소제목 안에서 더 작은 하위 항목이 필요할 때만 <h3 style=\"color: $HEADING_TEXT;\">처럼 글자색만 적용한 h3를 보조적으로 쓰세요. (태그 없이 일반 줄글만 작성하면 안 됩니다!)\n")
+        // 원본의 mapLocation 제목 접두 지시(sidepanel.js:1635) 그대로 - 사진 EXIF GPS로
+        // 구한 "구 동"을 제목 맨 앞에 붙인다(사용자 요청 - "정보성글 구동을 고르게 해줘").
+        // caseInfo(informationalCaseInfoBlock)는 "특정 지역을 특정하지 말라"고 지시하므로,
+        // 지역 사실을 캐이스 정보 쪽에 섞지 않고 원본처럼 제목 접두사로만 분리해서 반영한다.
+        if (!districtDong.isNullOrBlank()) {
+            append("1-1. ⭐ [필수] 제목 맨 앞에 지역명 \"$districtDong \"을 반드시 그대로 붙이세요. (예: \"$districtDong $keyword\"처럼 지역명 뒤에 공백을 두고 나머지 제목을 이어 쓰세요. 지역명 글자를 바꾸거나 줄이지 마세요.)\n")
+        }
         if (hasImages) {
             append("2. ⭐ [필수 사진 배치] 사전 분석된 각 사진이 본문에서 설명되는 단락 바로 앞이나 뒤에 반드시 <!-- USER_IMAGE_0 --> ~ <!-- USER_IMAGE_${lastIdx} --> 주석을 단독 줄로 삽입하세요. (공백이나 줄바꿈으로 비워두지 마세요!)\n")
         }
@@ -181,6 +201,12 @@ object PhotoWriterPromptBuilder {
         append("5. 유용한 팁이나 주요 포인트는 아래처럼 콜아웃 박스로 꾸며주세요(제목은 반드시 \"$calloutLabel\"로 써 - 다른 문구로 바꾸지 마세요):\n")
         append("   <div style=\"background-color: $CALLOUT_BG; border-left: 4px solid $ACCENT; color: $CALLOUT_TEXT; padding: 12px 16px; border-radius: 6px;\"><strong>$calloutLabel</strong><br>내용...</div>\n")
         append("6. 사진 캡션은 25자 안팎의 담백한 설명으로 작성하고 이모지는 넣지 마세요. ⭐ 사용자가 원고료·협찬·제품제공 등을 받았다고 명시적으로 밝히지 않는 한, 광고·협찬 고지 문구를 임의로 지어내 넣지 마세요. ⭐ 파일명이나 숫자, \"설명 없음\" 같은 문구를 캡션으로 그대로 쓰지 말고, 반드시 사진 속 실제 모습을 눈으로 보고 묘사한 문장으로 작성하세요.\n")
+        // 네이버에 실제로 발행된 화면을 보면 #태그가 TAGS 주석뿐 아니라 본문 맨 끝에도 문단으로
+        // 그대로 적혀 있었다(사용자가 실기기 캡처로 확인) - 별도 자동화가 아니라 AI가 본문 글
+        // 자체에 해시태그 줄을 써낸 것이었다. 우리 프롬프트엔 이 지시가 없어서 안 나왔으므로
+        // (사용자 지적 - "태그 자동으로 넣어줘") 똑같이 본문 마지막 문단으로 쓰라고 명시한다 -
+        // 그러면 캡션처럼 반자동 배치·복사 흐름에 자동으로 같이 실린다.
+        append("6-1. ⭐ 본문의 맨 마지막 문단으로, TAGS 주석과 같은 태그들을 \"#태그1 #태그2 #태그3 #태그4 #태그5\" 형태로 <p> 태그에 담아 한 줄 추가하세요.\n")
         append("7. 반드시 아래 예시와 같이 html 코드블록 안에 상단 메타데이터 주석과 본문 HTML 코드를 작성해 주세요(설명이나 인사말은 코드블록 밖에 쓰지 마세요):\n\n")
 
         append("[출력 형식 예시]\n")
@@ -196,7 +222,8 @@ object PhotoWriterPromptBuilder {
             append("\n<!-- USER_IMAGE_1: 캡션 -->\n\n")
         }
         append("<h2 style=\"border: 2px solid $ACCENT; background-color: $HEADING_BG; padding: 15px; font-size: 28px; color: $HEADING_TEXT; font-weight: bold; margin: 20px 0;\">2. 항목별 비교(예: 스펙, 가격, 전후 비교 등)</h2>\n")
-        append("<table style=\"border-collapse: collapse; width: 100%; border: 1px solid #ccc;\"><tbody><tr style=\"background-color: #f5f5f5;\"><td style=\"padding: 8px; border: 1px solid #ccc; text-align: left; white-space: nowrap;\"><b>항목1</b></td><td style=\"padding: 8px; border: 1px solid #ccc; text-align: left;\">내용1</td></tr><tr style=\"background-color: #fafafa;\"><td style=\"padding: 8px; border: 1px solid #ccc; text-align: left; white-space: nowrap;\"><b>항목2</b></td><td style=\"padding: 8px; border: 1px solid #ccc; text-align: left;\">내용2</td></tr></tbody></table>\n")
+        append("<table style=\"border-collapse: collapse; width: 100%; border: 1px solid #ccc;\"><tbody><tr style=\"background-color: #f5f5f5;\"><td style=\"padding: 8px; border: 1px solid #ccc; text-align: left; white-space: nowrap;\"><b>항목1</b></td><td style=\"padding: 8px; border: 1px solid #ccc; text-align: left;\">내용1</td></tr><tr style=\"background-color: #fafafa;\"><td style=\"padding: 8px; border: 1px solid #ccc; text-align: left; white-space: nowrap;\"><b>항목2</b></td><td style=\"padding: 8px; border: 1px solid #ccc; text-align: left;\">내용2</td></tr></tbody></table>\n\n")
+        append("<p>#추천태그1 #추천태그2 #추천태그3 #추천태그4 #추천태그5</p>\n")
         append("```")
     }
 }

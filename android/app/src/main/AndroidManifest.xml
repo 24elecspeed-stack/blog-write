@@ -44,6 +44,8 @@
             android:exported="false" android:label="블로그 반자동 복사" />
         <activity android:name=".PhotoWriterActivity" android:screenOrientation="portrait"
             android:exported="false" android:label="사진으로 글쓰기" />
+        <activity android:name=".AdWidgetActivity" android:screenOrientation="portrait"
+            android:exported="false" android:label="광고 위젯 만들기" />
         <activity android:name=".LicenseActivity" android:screenOrientation="portrait"
             android:exported="false" android:label="라이선스 인증" />
         <service

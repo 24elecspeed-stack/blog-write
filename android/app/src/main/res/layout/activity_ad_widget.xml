@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/adWidgetRoot" android:layout_width="match_parent" android:layout_height="match_parent" android:clipToPadding="false" android:fillViewport="true">
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="광고 위젯 만들기" android:textColor="@color/text_primary" android:textSize="22sp" android:textStyle="bold" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="본문에 전화번호를 쓰지 않고, 네이버 블로그 위젯에 걸 배너(이미지+링크)를 블로그별로 만듭니다. 블로그마다 연결 URL을 다르게 해야 여러 블로그가 같은 운영자로 묶여 보이지 않습니다." android:textColor="@color/text_secondary" android:textSize="12sp" />
+
+    <LinearLayout android:id="@+id/adWidgetRows" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+
+    <Button android:id="@+id/btnSaveAdWidgets" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="16dp" android:backgroundTint="@color/primary" android:text="전체 저장" android:textColor="@android:color/white" android:textSize="14sp" android:textStyle="bold" app:cornerRadius="14dp" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="등록 방법: 네이버 블로그 관리 → 꾸미기 설정 → 레이아웃·위젯 설정 → 위젯 직접등록(최대 5개)에 복사한 코드를 붙여넣고 저장하세요." android:textColor="@color/text_secondary" android:textSize="11sp" />
+    <View android:layout_width="match_parent" android:layout_height="24dp" />
+  </LinearLayout>
+</ScrollView>

@@ -1,5 +1,6 @@
 package com.keyword.research
 
+import android.Manifest
 import android.app.Dialog
 import android.content.ClipData
 import android.content.ClipDescription
@@ -7,9 +8,11 @@ import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.provider.Settings
@@ -22,7 +25,9 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -55,6 +60,24 @@ class PhotoWriterActivity : AppCompatActivity() {
     // 있어, 분석 후 글쓰기를 해야 해"). 비어 있으면 아직 1단계를 안 끝낸 것이다.
     private var photoDescriptions: List<String> = emptyList()
 
+    // "지역(구/동) 선택" 버튼으로 고른 값 - 정보성 글 제목 접두사로 쓴다(사용자 요청 -
+    // "정보성글 구동을 고르게 해줘 동단위가 아니라 구동이야").
+    private var selectedDistrictDong: String? = null
+
+    // GPS EXIF를 리다크션 없이 읽으려면(MediaStore.setRequireOriginal) ACCESS_MEDIA_LOCATION
+    // 런타임 권한이 있어야 한다 - RichCopyTestActivity의 "위치로 사진 폴더 만들기"가 이미 쓰는
+    // 패턴을 그대로 가져왔다. 이 권한 없이 호출하면 전부 null로 조용히 실패한다(사용자가
+    // 실기기로 확인 - 사진 8장 전부 "위치를 찾지 못했습니다").
+    private val requestMediaLocationPermission = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        if (results[Manifest.permission.ACCESS_MEDIA_LOCATION] == true) {
+            pickDistrictDongInternal()
+        } else {
+            Toast.makeText(this, "위치 권한이 없어 사진의 GPS 정보를 읽을 수 없습니다.", Toast.LENGTH_LONG).show()
+        }
+    }
+
     // AI가 돌려준 HTML 글 - USER_IMAGE_N 자리표시자를 실제 <img> 데이터 URI로 바꾼 최종 본문.
     private var articleTitle: String = ""
     private var articleSummary: String = ""
@@ -71,6 +94,9 @@ class PhotoWriterActivity : AppCompatActivity() {
     // 콜아웃/사진 블록 단위로 훑어서 만든다.
     private var naverSteps: List<AutoPasteState.Step> = emptyList()
 
+    // "캡션 전체 클립보드에 저장" 버튼용 - 사진 순서 그대로의 캡션 목록(본문에 쓰이는 것과
+    // 같은 getSmartImageCaption 결과).
+    private var photoCaptionsInOrder: List<String> = emptyList()
 
     private var watermarkText: String = ""
     private var watermarkTypeface: android.graphics.Typeface = android.graphics.Typeface.DEFAULT
@@ -91,18 +117,22 @@ class PhotoWriterActivity : AppCompatActivity() {
         applyInsetPadding()
 
         findViewById<View>(R.id.btnPickPhotosForWriter).setOnClickListener { pickImages() }
+        findViewById<Button>(R.id.btnPickDistrictDong).setOnClickListener { pickDistrictDong() }
         findViewById<Button>(R.id.btnCopyVisionPrompt).setOnClickListener { copyVisionPrompt() }
         findViewById<Button>(R.id.btnSharePhotosToAi).setOnClickListener { sharePhotosToAi() }
         findViewById<Button>(R.id.btnOpenGeminiFromPhotoWriter).setOnClickListener { openGemini() }
         findViewById<Button>(R.id.btnOpenChatGptFromPhotoWriter).setOnClickListener { openChatGpt() }
         findViewById<Button>(R.id.btnImportVisionAnalysis).setOnClickListener { importVisionAnalysis() }
-        findViewById<Button>(R.id.btnCopyPhotoPrompt).setOnClickListener { copyWritingPrompt() }
+        findViewById<Button>(R.id.btnCopyPhotoPromptCase).setOnClickListener { copyWritingPromptCase() }
+        findViewById<Button>(R.id.btnCopyPhotoPromptInformational).setOnClickListener { copyWritingPromptInformational() }
         findViewById<Button>(R.id.btnImportPhotoDraft).setOnClickListener { importPhotoDraft() }
         findViewById<Button>(R.id.btnOpenFinalHtmlPage).setOnClickListener { openFinalHtmlPage() }
         findViewById<Button>(R.id.btnCopyHtmlCode).setOnClickListener { copyHtmlCode() }
+        findViewById<Button>(R.id.btnCopyTags).setOnClickListener { copyTags() }
         findViewById<Button>(R.id.btnCopyPhotoArticle).setOnClickListener { copyRichContent() }
         findViewById<Button>(R.id.btnStartNaverAutoPasteFromPhotoWriter).setOnClickListener { startNaverAutoPaste() }
         findViewById<Button>(R.id.btnOpenNaverBlogFromPhotoWriter).setOnClickListener { openNaverBlogApp(clearPasteOnFailure = false) }
+        findViewById<Button>(R.id.btnCopyCaptionsToClipboard).setOnClickListener { copyAllCaptionsToClipboard() }
 
         updatePhotoCount()
         updateKeywordText()
@@ -120,11 +150,12 @@ class PhotoWriterActivity : AppCompatActivity() {
             return
         }
         val caseInfo = SearchState.informationalCaseInfoBlock?.trim()
-        keywordText.text = if (caseInfo.isNullOrBlank()) {
+        val base = if (caseInfo.isNullOrBlank()) {
             "키워드: $keyword\n(현장 정보 없음 - \"키워드와 현장 정보\"에서 확인 원인/작업 내용/작업 결과를 입력하면 여기에 반영됩니다)"
         } else {
             "키워드: $keyword\n\n[실제로 포함될 현장 정보]\n$caseInfo"
         }
+        keywordText.text = selectedDistrictDong?.let { "$base\n\n[제목 지역] $it" } ?: base
     }
 
     override fun onResume() {
@@ -221,6 +252,61 @@ class PhotoWriterActivity : AppCompatActivity() {
     // ① "사진 분석 요청문 복사" - 원본 딸깍처럼 글쓰기 전에 사진 분석을 먼저 끝낸다(사용자
     // 지적 - "익스텐션은 먼저 사진을 분석하고 난 뒤에 분석 글을 가지고 글을 써. 우리는 하나만
     // 하고 있어"). 사진 순서는 이 시점에 고정하고, 이전 분석 결과(다른 사진 기준)는 무효화한다.
+    // 선택한 사진들의 EXIF GPS로 "구 동"을 구해서 사용자가 고르게 한다(사용자 요청 - "사진으로
+    // 글쓰기는 exif로 무조건 구동만을 가져오는데 서울 경기 가져오지 말고... 화곡1동 화곡2동
+    // 이렇게 가지고 오지 말고 화곡동 전체 동으로" / "정보성글 구동을 고르게 해줘 동단위가
+    // 아니라 구동이야"). 원본 딸깍의 GPS 기반 지역 확정(reverseGeocodeToDistrict)과 같은
+    // 역할이지만, 네트워크 API 대신 이미 검증된 PhotoLocationScanner의 안드로이드 Geocoder
+    // 경로를 재사용한다.
+    private fun pickDistrictDong() {
+        if (selectedImages.isEmpty()) {
+            Toast.makeText(this, "먼저 사진을 선택해주세요.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val mediaPerm = if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE
+        val hasLocationPerm = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_MEDIA_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (!hasLocationPerm) {
+            requestMediaLocationPermission.launch(arrayOf(mediaPerm, Manifest.permission.ACCESS_MEDIA_LOCATION))
+            return
+        }
+        pickDistrictDongInternal()
+    }
+
+    private fun pickDistrictDongInternal() {
+        Toast.makeText(this, "사진 위치를 확인하는 중입니다...", Toast.LENGTH_SHORT).show()
+        Thread {
+            val candidates = linkedSetOf<String>()
+            val seenCoords = linkedSetOf<String>()
+            selectedImages.forEach { uri ->
+                val latLng = PhotoLocationScanner.readGps(this, uri) ?: return@forEach
+                // 같은 현장에서 찍은 사진은 좌표가 거의 같으므로, 한 번 조회한 좌표는 다시
+                // 조회하지 않는다 - Nominatim 무료 API의 초당 1회 요청 제한 정책 때문.
+                if (!seenCoords.add(NominatimReverseGeocodeApi.coordKey(latLng.first, latLng.second))) return@forEach
+                NominatimReverseGeocodeApi.reverseGeocodeGuDong(latLng.first, latLng.second)?.let { candidates += it }
+                Thread.sleep(250)
+            }
+            runOnUiThread {
+                if (candidates.isEmpty()) {
+                    Toast.makeText(this, "사진에서 구/동 단위 위치를 찾지 못했습니다(GPS 없음 또는 변환 실패).", Toast.LENGTH_LONG).show()
+                    return@runOnUiThread
+                }
+                val options = candidates.toList()
+                android.app.AlertDialog.Builder(this)
+                    .setTitle("지역(구/동) 선택")
+                    .setItems(options.toTypedArray()) { _, which ->
+                        selectedDistrictDong = options[which]
+                        updateKeywordText()
+                        Toast.makeText(this, "\"${options[which]}\"을(를) 제목 지역으로 사용합니다.", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("사용 안 함") { _, _ ->
+                        selectedDistrictDong = null
+                        updateKeywordText()
+                    }
+                    .show()
+            }
+        }.start()
+    }
+
     private fun copyVisionPrompt() {
         if (selectedImages.isEmpty()) {
             Toast.makeText(this, "먼저 분석할 사진을 선택해주세요.", Toast.LENGTH_SHORT).show()
@@ -291,7 +377,22 @@ class PhotoWriterActivity : AppCompatActivity() {
     // ③ "글쓰기 요청문 복사" - ①②에서 끝낸 사진 분석 결과를 "사전 분석된 사진 목록"으로 넣어
     // 글을 쓴다. 같은 대화창에서 이어 보내면 AI가 사진을 이미 봤으므로 다시 첨부할 필요가 없다
     // (원본도 같은 세션에서 1·2단계를 이어서 진행한다).
-    private fun copyWritingPrompt() {
+    // "반자동 글쓰기"(RichCopyTestActivity)처럼 글을 쓰기 전에 출장 사례형/정보형을 먼저
+    // 고르게 한다(사용자 요청 - "반자동 글쓰기처럼 선택을 해야 글을 쓰게끔 해줘") - 이전에는
+    // 항상 정보형으로 고정돼 있었다.
+    private fun copyWritingPromptCase() {
+        if (!SearchState.hasLocationInfo) {
+            Toast.makeText(this, "출장 사례는 메인 화면에서 지역(구)과 동을 먼저 입력해주세요. 정보성 글은 '정보형'을 눌러주세요.", Toast.LENGTH_LONG).show()
+            return
+        }
+        copyWritingPrompt(informational = false, caseInfo = SearchState.caseInfoBlock, label = "출장 사례형")
+    }
+
+    private fun copyWritingPromptInformational() {
+        copyWritingPrompt(informational = true, caseInfo = SearchState.informationalCaseInfoBlock, label = "정보형")
+    }
+
+    private fun copyWritingPrompt(informational: Boolean, caseInfo: String?, label: String) {
         val keyword = SearchState.lastKeyword.trim()
         if (keyword.isBlank()) {
             Toast.makeText(this, "먼저 메인 화면 \"키워드와 현장 정보\"에서 키워드를 검색해주세요.", Toast.LENGTH_LONG).show()
@@ -302,20 +403,21 @@ class PhotoWriterActivity : AppCompatActivity() {
             return
         }
         // 사진은 그림 자료로만 쓰고, 글 내용은 키워드 현장 정보의 사실관계를 그대로 따른다
-        // (사용자 지시) - 기존 "블로그 반자동 복사"와 같은 정보성 글 규칙(PromptBuilder.
-        // editorialRules)을 그대로 재사용해서 지역명·수리 설명 금지, 사실 지어내지 않기 기준을
-        // 똑같이 지킨다.
-        val editorialRules = PromptBuilder.editorialRules(informational = true, baseRules = PromptTemplateStore.load(this))
+        // (사용자 지시) - 기존 "블로그 반자동 복사"와 같은 규칙(PromptBuilder.editorialRules)을
+        // 그대로 재사용해서 사실 지어내지 않기 기준을 똑같이 지킨다.
+        val editorialRules = PromptBuilder.editorialRules(informational = informational, baseRules = PromptTemplateStore.load(this))
         val prompt = PhotoWriterPromptBuilder.build(
             keyword = keyword,
-            caseInfo = SearchState.informationalCaseInfoBlock,
+            caseInfo = caseInfo,
             editorialRules = editorialRules,
             blogProfile = currentBlogEntry(),
-            photoDescriptions = photoDescriptions
+            photoDescriptions = photoDescriptions,
+            districtDong = selectedDistrictDong,
+            informational = informational
         )
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("photo-writer-prompt", prompt))
-        status.text = "③ 글쓰기 요청문을 복사했습니다 · 사진 분석했던 그 대화창에 이어서 붙여넣으면 사진을 다시 첨부할 필요가 없습니다."
+        status.text = "③ 글쓰기 요청문을 복사했습니다($label) · 사진 분석했던 그 대화창에 이어서 붙여넣으면 사진을 다시 첨부할 필요가 없습니다."
         Toast.makeText(this, "③ 글쓰기 요청문을 복사했습니다.", Toast.LENGTH_LONG).show()
     }
 
@@ -402,6 +504,11 @@ class PhotoWriterActivity : AppCompatActivity() {
             add(AutoPasteState.Step.MoveBelowImage)
             addAll(buildNaverSteps(bodyHtml, promptImages, renderedBlocks))
         }
+        photoCaptionsInOrder = naverBlockRegex().findAll(bodyHtml).mapNotNull { match ->
+            val idx = match.named("imgidx")?.toIntOrNull() ?: return@mapNotNull null
+            val aiCaption = match.named("imgcap")?.let { stripTags(it) }?.trim().orEmpty()
+            getSmartImageCaption(idx, aiCaption)
+        }.toList()
         val decoyHtml = "<p>${Html.escapeHtml(DECOY_TEXT).replace("\n", "<br>")}</p>" +
             "<img src=\"${renderedBlockAsDataUri(decoyUri)}\" style=\"max-width:100%;height:auto;display:block;margin:12px 0;\" />"
         nativePasteBodyHtml = decoyHtml + embedImages(buildNativePasteHtml(bodyHtml, renderedBlocks), promptImages)
@@ -593,9 +700,9 @@ class PhotoWriterActivity : AppCompatActivity() {
                 images.getOrNull(imageIndex)?.let { uri ->
                     steps += AutoPasteState.Step.Image(uri)
                     steps += AutoPasteState.Step.MoveBelowImage
-                    val aiCaption = match.named("imgcap")?.let { stripTags(it) }?.trim().orEmpty()
-                    val caption = getSmartImageCaption(imageIndex, aiCaption)
-                    if (caption.isNotBlank()) steps += AutoPasteState.Step.Text("$caption\n\n")
+                    // 캡션을 본문에 글자로 타이핑하지 않는다(사용자 지시 - "본문에 들어가는
+                    // 캡션은 없애줘") - 대신 "캡션 전체 클립보드에 저장" 버튼으로 네이버의
+                    // 진짜 캡션 입력칸에 직접 붙여넣는 방식을 쓴다.
                 }
                 return@forEach
             }
@@ -718,12 +825,22 @@ class PhotoWriterActivity : AppCompatActivity() {
 
     private fun buildPreviewDocument(): String {
         val body = finalBodyHtml.ifBlank { "<p style=\"color:#4A5568;\">AI가 써준 글을 가져오면 여기에 실제 HTML 스타일로 미리보기가 표시됩니다.</p>" }
+        // 원본도 TAGS 주석을 자동으로 네이버에 입력하지 않고, 자기 화면에 #태그 뱃지로
+        // 보여주기만 해서 사용자가 보고 직접 넣게 한다(sidepanel.js의 finalTagsContainer).
+        // 여기선 articleTags가 파싱만 되고 어디에도 안 보였던 게 문제였다(사용자 지적 -
+        // "태그가... 안들어가 있네") - 똑같이 미리보기 하단에 뱃지로 보여준다.
+        val tagsHtml = if (articleTags.isNotEmpty()) {
+            "<div style=\"margin-top:16px;\">" +
+                articleTags.joinToString(" ") { "<span style=\"display:inline-block;background:#EAF1FE;color:#173B70;padding:4px 10px;border-radius:12px;font-size:12px;margin-right:4px;\">#${Html.escapeHtml(it)}</span>" } +
+                "</div>"
+        } else ""
         return """
             <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
             <style>body{font-family:-apple-system,Roboto,sans-serif;padding:12px;color:#132238;line-height:1.6;} img{max-width:100%;height:auto;}</style>
             </head><body>
             ${if (articleTitle.isNotBlank()) "<h1 style=\"font-size:20px;\">${Html.escapeHtml(articleTitle)}</h1>" else ""}
             $body
+            $tagsHtml
             </body></html>
         """.trimIndent()
     }
@@ -763,6 +880,21 @@ class PhotoWriterActivity : AppCompatActivity() {
         clipboard.setPrimaryClip(ClipData.newPlainText("photo-writer-html", titleComment + finalBodyHtml))
         status.text = "HTML 코드를 복사했습니다 · 티스토리/Blogger의 HTML 모드에 붙여넣으세요."
         Toast.makeText(this, "HTML 코드를 복사했습니다.", Toast.LENGTH_SHORT).show()
+    }
+
+    // 원본은 AI가 써준 TAGS 주석을 네이버에 자동으로 입력하지 않고 자기 화면에 #태그 뱃지로
+    // 보여주기만 한다(sidepanel.js의 finalTagsContainer) - 여기서도 똑같이, 자동 입력 대신
+    // 복사 버튼으로 사용자가 네이버 태그 입력칸에 직접 붙여넣게 한다(사용자 지적 - "태그가...
+    // 안들어가 있네" - articleTags는 파싱만 되고 어디에도 안 쓰이고 있었다).
+    private fun copyTags() {
+        if (articleTags.isEmpty()) {
+            Toast.makeText(this, "먼저 AI가 써준 글을 가져와주세요.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val text = articleTags.joinToString(" ") { "#$it" }
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("photo-writer-tags", text))
+        Toast.makeText(this, "태그를 복사했습니다: $text", Toast.LENGTH_LONG).show()
     }
 
     // "글과 사진 전체 한 번에 복사" - 네이버처럼 리치 텍스트 붙여넣기를 받는 에디터용으로,
@@ -827,6 +959,34 @@ class PhotoWriterActivity : AppCompatActivity() {
                 }
             }
         }.start()
+    }
+
+    // 삼성 키보드의 클립보드 보드(최근 복사 기록, 최대 20개)를 활용해 캡션을 빠르게
+    // 붙여넣는 방법(사용자 제안 - "캡션 20개를 미리 저장해 놓고 사진 밑에 하나씩 터치해서
+    // 붙여넣기"). 접근성 서비스로 캡션 칸을 직접 찾아 넣으려던 "캡션 채우기"는 실기기에서
+    // 멈추는 문제로 실패해서 뺐는데(사용자 지시 - "하지 말라고 지워"), 이 방식은 순수
+    // 클립보드 쓰기만 반복하므로 실패할 지점 자체가 없다. 순서대로 복사해두면 사용자가 각
+    // 사진 설명 칸을 탭하고 키보드 클립보드 아이콘에서 골라 붙이기만 하면 된다. 클립보드
+    // 보드는 최근 것 위주로 최대 20개만 유지되므로, 캡션이 20개를 넘으면 앞쪽(먼저 복사한)
+    // 캡션이 밀려날 수 있다고 미리 안내한다.
+    private fun copyAllCaptionsToClipboard() {
+        if (photoCaptionsInOrder.isEmpty()) {
+            Toast.makeText(this, "먼저 ④ AI가 써준 글을 가져와주세요.", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (photoCaptionsInOrder.size > 20) {
+            Toast.makeText(this, "캡션이 20개가 넘어서(${photoCaptionsInOrder.size}개) 키보드 클립보드 보드에 먼저 복사한 일부가 밀려날 수 있습니다.", Toast.LENGTH_LONG).show()
+        }
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        photoCaptionsInOrder.forEachIndexed { index, caption ->
+            handler.postDelayed({
+                clipboard.setPrimaryClip(ClipData.newPlainText("사진 ${index + 1} 캡션", caption))
+                if (index == photoCaptionsInOrder.size - 1) {
+                    Toast.makeText(this, "캡션 ${photoCaptionsInOrder.size}개를 클립보드에 저장했습니다. 네이버에서 각 사진 설명 칸을 탭하고 키보드 클립보드 보드에서 골라 붙여넣으세요.", Toast.LENGTH_LONG).show()
+                }
+            }, index * 200L)
+        }
     }
 
     private fun openNaverBlogApp(clearPasteOnFailure: Boolean) {
