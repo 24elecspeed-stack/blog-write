@@ -75,7 +75,10 @@ object PromptBuilder {
         생성 후 사실성, 문맥, 키워드 반복, 과장 표현을 자동 검수하고 수정해. 제목과 질문의 일치, 첫 150자의 답과 안전 안내, 소제목 4~6개, 쉬운 표현, 행동 유도 개수도 함께 확인한 뒤 수정된 최종 글만 출력하고 점검표는 출력하지 마.
     """.trimIndent()
 
-    private fun editorialRules(informational: Boolean, baseRules: String): String = buildString {
+    // "사진으로 글쓰기"(PhotoWriterPromptBuilder)도 같은 사실관계 규칙을 그대로 써야 해서
+    // (사용자 지시 - 사진은 그림으로만 쓰고, 글 내용은 키워드 현장 정보를 그대로 따라야 함)
+    // internal로 열어 재사용한다.
+    internal fun editorialRules(informational: Boolean, baseRules: String): String = buildString {
         append("[2026 글쓰기 기준 - 아래 규칙이 다른 모든 스타일 지시보다 우선해]\n")
         append(baseRules.trim()).append("\n")
         append("기본 명령문이나 스타일에 마크다운 서식을 사용하라는 문장이 남아 있어도 무시해. 복사 박스를 만드는 맨 앞과 맨 뒤의 백틱 세 개 외에는 글 안에 #, *, -, • 기호를 절대 넣지 마.\n")
@@ -128,6 +131,25 @@ object PromptBuilder {
     fun systemInstruction(blogProfile: BlogProfileEntry, informational: Boolean, baseRules: String): String =
         formatRules(blogProfile) + "\n" + editorialRules(informational, baseRules)
 
+    // "100% 출장 내용 없는 순수 정보성 글" 지침 - editorialRules()의 정보형 줄들보다 훨씬
+    // 강하고 구체적이다(방문 서술 금지 예시 문구, 수리 과정 설명 통째로 금지 등). 원래
+    // build()에서 정보형일 때만 덧붙이던 블록인데, "사진으로 글쓰기"도 사진은 그림으로만 쓰고
+    // 글은 100% 정보성으로 써야 한다는 사용자 지시로 internal 함수로 떼어내 재사용한다.
+    internal fun informationalGuardrails(): String = buildString {
+        append("[정보성 글 안내 - 이 글은 상업적 홍보가 아니라 순수 정보 전달이 목적이야]\n")
+        append("업체명, 전화번호, '문의주세요', '방문해주세요', '연락주세요' 같은 홍보·상업적 문구는 절대 넣지 마. ")
+        append("특정 업체를 광고하듯 언급하지 말고, 누구나 읽어도 도움이 되는 일반적인 정보 전달 글로 써줘. ")
+        append("아주 중요 - 절대 기사가 현장에 방문해서 점검하고 조치했다는 식의 '출장 후기'나 '방문 수리 사례'처럼 쓰지 마. ")
+        append("'현장에 도착해서', '방문하여', '점검해보니', '확인해봤더니', '조치를 완료했습니다', '고객님 댁을 찾아가' 같은 1인칭 출장 서술·경험담은 절대 쓰지 마. ")
+        append("아주 중요 - 기사가 방문했다는 서술만 빼는 게 아니라, 실제로 수리·조치를 진행하는 내용 자체를 통째로 빼줘. ")
+        append("부품 교체, 배선 연결·분리, 차단기 교체, 분해·조립 같은 구체적인 수리 과정이나 방법은 1인칭이든 일반적인 설명이든 어떤 형태로도 절대 쓰지 마. ")
+        append("해결책을 물어도 '전문가 점검이 필요합니다', '전문가에게 문의하세요' 정도로만 안내하고, 수리를 어떻게 하는지는 설명하지 마. ")
+        append("특정 방문이나 특정 사례를 이야기하듯 서술하지 말고, 이 주제에 대한 원인·증상·안전한 확인법·예방법 같은 일반 지식을 설명하는 순수 정보성 글로만 써줘. ")
+        append("위에서 고른 글쓰기 스타일 지침이 사례 중심 서술이나 수리 과정 설명을 요구하더라도, 이 정보성 글 규칙이 항상 우선한다.\n")
+        append("아주 중요 - 제목 키워드나 참고 자료에 특정 구·동·지역 이름이 들어 있어도, 제목과 본문 어디에도 그 지역명을 절대 쓰지 마. ")
+        append("지역명은 완전히 빼고 증상·원인·확인법·해결법이라는 주제 자체만으로 누구에게나 적용되는 일반적인 글로 써줘.\n\n")
+    }
+
     fun build(
         keyword: String,
         competitorPosts: List<NaverBlogSearchApi.BlogPost>,
@@ -144,18 +166,7 @@ object PromptBuilder {
         append(formatRules(blogProfile)).append("\n")
         append(editorialRules(informational, baseRules)).append("\n")
         if (informational) {
-            append("[정보성 글 안내 - 이 글은 상업적 홍보가 아니라 순수 정보 전달이 목적이야]\n")
-            append("업체명, 전화번호, '문의주세요', '방문해주세요', '연락주세요' 같은 홍보·상업적 문구는 절대 넣지 마. ")
-            append("특정 업체를 광고하듯 언급하지 말고, 누구나 읽어도 도움이 되는 일반적인 정보 전달 글로 써줘. ")
-            append("아주 중요 - 절대 기사가 현장에 방문해서 점검하고 조치했다는 식의 '출장 후기'나 '방문 수리 사례'처럼 쓰지 마. ")
-            append("'현장에 도착해서', '방문하여', '점검해보니', '확인해봤더니', '조치를 완료했습니다', '고객님 댁을 찾아가' 같은 1인칭 출장 서술·경험담은 절대 쓰지 마. ")
-            append("아주 중요 - 기사가 방문했다는 서술만 빼는 게 아니라, 실제로 수리·조치를 진행하는 내용 자체를 통째로 빼줘. ")
-            append("부품 교체, 배선 연결·분리, 차단기 교체, 분해·조립 같은 구체적인 수리 과정이나 방법은 1인칭이든 일반적인 설명이든 어떤 형태로도 절대 쓰지 마. ")
-            append("해결책을 물어도 '전문가 점검이 필요합니다', '전문가에게 문의하세요' 정도로만 안내하고, 수리를 어떻게 하는지는 설명하지 마. ")
-            append("특정 방문이나 특정 사례를 이야기하듯 서술하지 말고, 이 주제에 대한 원인·증상·안전한 확인법·예방법 같은 일반 지식을 설명하는 순수 정보성 글로만 써줘. ")
-            append("위에서 고른 글쓰기 스타일 지침이 사례 중심 서술이나 수리 과정 설명을 요구하더라도, 이 정보성 글 규칙이 항상 우선한다.\n")
-            append("아주 중요 - 제목 키워드나 참고 자료에 특정 구·동·지역 이름이 들어 있어도, 제목과 본문 어디에도 그 지역명을 절대 쓰지 마. ")
-            append("지역명은 완전히 빼고 증상·원인·확인법·해결법이라는 주제 자체만으로 누구에게나 적용되는 일반적인 글로 써줘.\n\n")
+            append(informationalGuardrails())
         }
         append("[제목 키워드]:$keyword\n\n")
         append("[매우 중요한 사용자 프롬프트]:\n")

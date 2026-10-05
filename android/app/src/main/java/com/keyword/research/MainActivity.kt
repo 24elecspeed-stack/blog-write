@@ -70,6 +70,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnOpenBlogTitle).setOnClickListener { startActivity(Intent(this, BlogTitleActivity::class.java)) }
         findViewById<View>(R.id.btnOpenLowCompetitionDong).setOnClickListener { startActivity(Intent(this, LowCompetitionDongActivity::class.java)) }
         findViewById<View>(R.id.btnOpenKeywordCaseInfo).setOnClickListener { startActivity(Intent(this, KeywordCaseInfoActivity::class.java)) }
+        findViewById<View>(R.id.btnOpenPhotoWriter).setOnClickListener { startActivity(Intent(this, PhotoWriterActivity::class.java)) }
         findViewById<View>(R.id.btnOpenRichCopyTest).setOnClickListener {
             // "콘텐츠 생성"과 "키워드와 현장 정보"가 이제 각각 별도 화면에 있으므로(사용자 요청 -
             // 카드 대시보드 방식), 사례 정보는 KeywordCaseInfoActivity가 나갈 때마다 SearchState에
@@ -425,8 +426,8 @@ class MainActivity : AppCompatActivity() {
             ChatGPT에서 따로 다듬은 글은 클립보드에서 글 가져오기로 불러옵니다. 복사 박스의
             바깥 백틱과 혹시 섞인 본문 기호는 자동으로 걷어내고 가져옵니다.
 
-            4. 사진 여러 장 선택 후 자동 배치를 누르면 문단 사이에 사진이 랜덤으로 배치됩니다.
-            배치가 마음에 안 들면 사진 다시 랜덤 배치를 다시 누릅니다.
+            4. 사진 여러 장 선택 후 자동 배치를 누르면 촬영 날짜·시간 순서대로(오래된 사진부터) 문단 사이에 배치됩니다.
+            배치가 마음에 안 들면 사진 다시 배치(촬영 시간 순)를 다시 누릅니다.
 
             5. 네이버에 붙여넣는 방법은 두 가지입니다.
 

@@ -13,7 +13,7 @@
     </queries>
 
     <application android:theme="@style/Theme.KeywordResearch"
-        android:label="경쟁사 키워드 리서치" android:allowBackup="true"
+        android:label="BlogTouch" android:allowBackup="true"
         android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round">
         <activity android:name=".MainActivity" android:screenOrientation="portrait"
             android:exported="true">
@@ -42,6 +42,8 @@
             android:exported="false" android:label="키워드와 현장 정보" />
         <activity android:name=".RichCopyTestActivity" android:screenOrientation="portrait"
             android:exported="false" android:label="블로그 반자동 복사" />
+        <activity android:name=".PhotoWriterActivity" android:screenOrientation="portrait"
+            android:exported="false" android:label="사진으로 글쓰기" />
         <activity android:name=".LicenseActivity" android:screenOrientation="portrait"
             android:exported="false" android:label="라이선스 인증" />
         <service

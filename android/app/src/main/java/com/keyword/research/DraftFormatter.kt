@@ -125,11 +125,20 @@ object DraftFormatter {
     fun unwrapCopyBlock(text: String): String {
         val normalized = text.trim().replace("\r\n", "\n")
         val lines = normalized.lines()
-        if (lines.size >= 2 && lines.first().trim().startsWith("```") && lines.last().trim() == "```") {
-            return lines.drop(1).dropLast(1).joinToString("\n").trim()
+        val unwrapped = if (lines.size >= 2 && lines.first().trim().startsWith("```") && lines.last().trim() == "```") {
+            lines.drop(1).dropLast(1).joinToString("\n").trim()
+        } else {
+            normalized.replace(Regex("(?m)^```(?:[A-Za-z0-9_-]+)?\\s*$"), "").trim()
         }
-        return normalized.replace(Regex("(?m)^```(?:[A-Za-z0-9_-]+)?\\s*$"), "").trim()
+        return stripCitationArtifacts(unwrapped)
     }
+
+    // Gemini 웹이 출처 인용(citation) 구간을 복사하면 "[span_0](start_span)...내용...
+    // [span_0](end_span)" 같은 자기들만의 마커가 글자 그대로 섞여 나온다(사용자가 실기기로
+    // 확인함). 모든 "글 가져오기" 경로가 공통으로 거치는 unwrapCopyBlock 안에서 제거해서
+    // 어느 화면에서 가져오든 빠짐없이 걸러지게 한다.
+    fun stripCitationArtifacts(text: String): String =
+        text.replace(Regex("\\[span_\\d+\\]\\((?:start_span|end_span)\\)"), "")
 
     // "글 가져오기"에서 딱 한 번만 쓴다 - 기호를 뗀 뒤 normalizeParagraphSpacing으로
     // "## 소제목"·"**소제목**"이었던 줄을 소제목 블록으로 인식시켜 문단 구조를 잡는다.

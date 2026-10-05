@@ -98,6 +98,14 @@ class KeywordCaseInfoActivity : AppCompatActivity() {
                     .putExtra(RichCopyTestActivity.EXTRA_WATERMARK_PHONE, entry.phone)
             )
         }
+        // "사진으로 글쓰기"로 바로 넘어가는 경로가 없어서(사용자 지적 - "적용이 반자동 복사
+        // 하는데만 있어 사진으로 글쓰기는 없네"), 반자동 복사와 같은 방식으로 스냅샷을 먼저
+        // 저장한 뒤 PhotoWriterActivity로 이동하는 버튼을 추가한다. PhotoWriterActivity는
+        // extra 없이 SearchState를 직접 읽으므로 그대로 넘기기만 하면 된다.
+        findViewById<Button>(R.id.btnApplyToPhotoWriter).setOnClickListener {
+            snapshotToSearchState()
+            startActivity(Intent(this, PhotoWriterActivity::class.java))
+        }
     }
 
     private fun currentBlogEntry(): BlogProfileEntry {

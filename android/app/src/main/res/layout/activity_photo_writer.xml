@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/photoWriterRoot" android:layout_width="match_parent" android:layout_height="match_parent" android:clipToPadding="false" android:fillViewport="true">
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center_vertical" android:orientation="horizontal">
+      <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="사진으로 글쓰기" android:textColor="@color/text_primary" android:textSize="22sp" android:textStyle="bold" />
+      <TextView android:layout_width="wrap_content" android:layout_height="22dp" android:layout_marginStart="8dp" android:background="@drawable/studio_badge" android:gravity="center" android:paddingHorizontal="8dp" android:text="첫 버전" android:textColor="@color/primary" android:textSize="11sp" android:textStyle="bold" />
+    </LinearLayout>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="사진을 올리면 AI가 사진을 직접 보고 본문 사이에 배치합니다. 아직 첫 버전이라 써보고 불편한 점을 알려주시면 바로 고칠게요." android:textColor="@color/text_secondary" android:textSize="12sp" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:background="@drawable/studio_field" android:orientation="vertical" android:padding="10dp">
+      <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="사용할 키워드 (메인 화면 \'키워드와 현장 정보\'에서 검색)" android:textColor="@color/text_primary" android:textSize="12sp" android:textStyle="bold" />
+      <TextView android:id="@+id/photoKeywordText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="먼저 메인 화면에서 키워드를 검색해주세요." android:textColor="@color/text_secondary" android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout android:id="@+id/btnPickPhotosForWriter" android:layout_width="match_parent" android:layout_height="60dp" android:layout_marginTop="12dp" android:background="@drawable/grid_cell_bg" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground" android:gravity="center_vertical" android:orientation="horizontal" android:paddingHorizontal="16dp">
+      <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_studio_photo" />
+      <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:text="본문에 배치할 사진 선택 *" android:textColor="@color/text_primary" android:textSize="13sp" android:textStyle="bold" />
+      <TextView android:id="@+id/photoCountText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="선택된 사진 없음" android:textColor="@color/text_secondary" android:textSize="12sp" />
+    </LinearLayout>
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="딸깍 SNS 원본처럼 사진 분석 → 글쓰기 2단계로 진행합니다." android:textColor="@color/text_secondary" android:textSize="11sp" />
+    <Button android:id="@+id/btnCopyVisionPrompt" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="6dp" android:backgroundTint="@color/primary" android:text="① 사진 분석 요청문 복사" android:textColor="@android:color/white" android:textSize="14sp" android:textStyle="bold" app:cornerRadius="14dp" />
+    <Button android:id="@+id/btnSharePhotosToAi" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="8dp" style="@style/Widget.Material3.Button.OutlinedButton" android:text="📤 같은 사진 그대로 AI 앱에 공유하기" android:textSize="13sp" android:textStyle="bold" app:cornerRadius="12dp" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:orientation="horizontal">
+      <Button android:id="@+id/btnOpenGeminiFromPhotoWriter" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:text="Gemini 웹 열기" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="12dp" android:paddingHorizontal="6dp" />
+      <Button android:id="@+id/btnOpenChatGptFromPhotoWriter" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginStart="8dp" android:text="ChatGPT 열기" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="12dp" android:paddingHorizontal="6dp" />
+    </LinearLayout>
+    <Button android:id="@+id/btnImportVisionAnalysis" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="8dp" android:backgroundTint="@color/primary" android:text="② 사진 분석 결과 가져오기" android:textColor="@android:color/white" android:textSize="14sp" android:textStyle="bold" app:cornerRadius="14dp" />
+
+    <Button android:id="@+id/btnCopyPhotoPrompt" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="16dp" android:backgroundTint="@color/accent" android:text="③ 글쓰기 요청문 복사" android:textColor="@android:color/white" android:textSize="14sp" android:textStyle="bold" app:cornerRadius="14dp" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="③은 ①②를 끝낸 뒤, 사진 분석했던 그 대화창에 이어서 붙여넣으세요 (사진 다시 첨부할 필요 없음)." android:textColor="@color/text_secondary" android:textSize="11sp" />
+    <Button android:id="@+id/btnImportPhotoDraft" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="8dp" android:text="④ AI가 써준 글 가져오기" android:textSize="14sp" android:textStyle="bold" app:cornerRadius="14dp" />
+
+    <TextView android:id="@+id/photoWriterStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="내용과 사진을 준비하고 요청문을 복사해 AI 앱에 붙여넣어주세요." android:textColor="@color/text_secondary" android:textSize="12sp" />
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="미리보기 (실제 HTML 스타일 그대로)" android:textColor="@color/text_primary" android:textSize="16sp" android:textStyle="bold" />
+    <WebView android:id="@+id/photoWriterPreview" android:layout_width="match_parent" android:layout_height="420dp" android:layout_marginTop="8dp" android:background="@drawable/studio_output" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:orientation="horizontal">
+      <Button android:id="@+id/btnOpenFinalHtmlPage" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:text="🌐 최종 HTML 페이지 보기" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="12dp" android:paddingHorizontal="6dp" />
+      <Button android:id="@+id/btnCopyHtmlCode" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginStart="8dp" android:text="HTML 코드 바로 복사" android:textSize="12sp" android:textStyle="bold" app:cornerRadius="12dp" android:paddingHorizontal="6dp" />
+    </LinearLayout>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="💡 색·표·강조박스를 그대로 남기려면: 네이버 블로그 앱이 아니라 PC(또는 모바일 브라우저의 '데스크톱 버전') 글쓰기 화면을 열고, 에디터 상단의 '&lt;&gt; HTML' 보기 버튼을 눌러 이 HTML 코드를 붙여넣은 뒤 다시 일반 보기로 전환하세요. 앱 붙여넣기는 네이버가 서식을 지워서 색이 빠집니다." android:textColor="@color/text_secondary" android:textSize="11sp" />
+    <Button android:id="@+id/btnCopyPhotoArticle" android:layout_width="match_parent" android:layout_height="54dp" android:layout_marginTop="14dp" android:text="글과 사진 전체 한 번에 복사 (네이버 붙여넣기용)" />
+    <Button android:id="@+id/btnStartNaverAutoPasteFromPhotoWriter" android:layout_width="match_parent" android:layout_height="54dp" android:layout_marginTop="8dp" android:text="네이버에 문단·사진 반자동 배치" />
+    <Button android:id="@+id/btnOpenNaverBlogFromPhotoWriter" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="8dp" android:text="네이버 블로그 앱 열기" />
+    <View android:layout_width="match_parent" android:layout_height="24dp" />
+  </LinearLayout>
+</ScrollView>

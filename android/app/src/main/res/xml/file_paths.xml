@@ -2,4 +2,5 @@
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <cache-path name="thumbnails" path="thumbnails/" />
     <cache-path name="richcopy" path="richcopy/" />
+    <cache-path name="photowriter" path="photowriter/" />
 </paths>

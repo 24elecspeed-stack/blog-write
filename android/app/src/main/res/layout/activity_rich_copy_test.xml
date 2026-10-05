@@ -55,7 +55,7 @@
     </LinearLayout>
     <LinearLayout android:id="@+id/btnShuffleRichImages" android:layout_width="match_parent" android:layout_height="60dp" android:layout_marginTop="10dp" android:background="@drawable/grid_cell_bg" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground" android:gravity="center_vertical" android:orientation="horizontal" android:paddingHorizontal="16dp">
       <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_studio_chart" />
-      <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:text="사진 다시 랜덤 배치" android:textColor="@color/text_primary" android:textSize="13sp" android:textStyle="bold" />
+      <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:text="사진 다시 배치 (촬영 시간 순)" android:textColor="@color/text_primary" android:textSize="13sp" android:textStyle="bold" />
     </LinearLayout>
     <TextView android:id="@+id/richCopyStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="사진을 선택하면 문단 사이에 자동 배치됩니다." android:textColor="@color/text_secondary" android:textSize="12sp" />
     <LinearLayout android:id="@+id/previewSection" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">

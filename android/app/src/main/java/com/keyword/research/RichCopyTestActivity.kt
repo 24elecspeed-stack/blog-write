@@ -697,21 +697,55 @@ class RichCopyTestActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != REQUEST_IMAGES || resultCode != RESULT_OK || data == null) return
-        selectedImages.clear()
+        val picked = mutableListOf<Uri>()
         data.clipData?.let { clips ->
-            for (index in 0 until clips.itemCount) selectedImages += clips.getItemAt(index).uri
-        } ?: data.data?.let { selectedImages += it }
+            for (index in 0 until clips.itemCount) picked += clips.getItemAt(index).uri
+        } ?: data.data?.let { picked += it }
+        // 사진은 고른 순서가 아니라 찍은 날짜·시간 오름차순(이른 시간 -> 늦은 시간)으로
+        // 정렬해둔다(사용자 지시 - "빠른 시간순으로") - arrangeImagesRandomly()가 이 순서
+        // 그대로 위에서 아래로 배치해서, 현장 상황이 시간 흐름대로 보이고 사진이 엉뚱한
+        // 자리로 밀리지 않게 한다.
+        selectedImages.clear()
+        selectedImages += picked.sortedBy { photoDateTakenMillis(it) }
         arrangeImagesRandomly()
+    }
+
+    // 사진의 촬영 시각 - 먼저 MediaStore의 DATE_TAKEN(갤러리가 이미 색인해둔 값)을 쓰고, 못 읽으면
+    // EXIF DateTimeOriginal을 직접 읽는다. 둘 다 없으면 맨 뒤로 보낸다(Long.MAX_VALUE).
+    private fun photoDateTakenMillis(uri: Uri): Long {
+        try {
+            contentResolver.query(uri, arrayOf(MediaStore.Images.Media.DATE_TAKEN), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val value = cursor.getLong(0)
+                    if (value > 0) return value
+                }
+            }
+        } catch (e: Exception) {
+            // MediaStore에 없는 URI(예: 다른 앱이 공유한 사진)일 수 있다 - EXIF로 폴백한다.
+        }
+        try {
+            contentResolver.openInputStream(uri)?.use { stream ->
+                val exif = androidx.exifinterface.media.ExifInterface(stream)
+                val tag = exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME_ORIGINAL)
+                    ?: exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME)
+                if (!tag.isNullOrBlank()) {
+                    val format = java.text.SimpleDateFormat("yyyy:MM:dd HH:mm:ss", java.util.Locale.US)
+                    return format.parse(tag)?.time ?: Long.MAX_VALUE
+                }
+            }
+        } catch (e: Exception) {
+            // 무시하고 맨 뒤로 보낸다.
+        }
+        return Long.MAX_VALUE
     }
 
     private fun arrangeImagesRandomly() {
         val blocks = paragraphs()
-        // 가라 사진(decoyPhotoUriCache)은 selectedImages에 실제로 들어있지만, 이건 진짜
-        // 랜덤 배치 대상이 아니라 항상 1번 문단(제목 다음)에 고정돼야 한다 - 랜덤 후보에
-        // 섞이면 같은 가라 사진이 다른 자리에도 또 뽑히거나, 반대로 제목 자리(0번)에 진짜
-        // 사진이 배치돼 가라보다 먼저 나오는(=대표사진이 가라가 아니라 진짜 사진이 되는)
-        // 문제가 재발한다(사용자 지적: "사진이 맨위에 올라왔다"). 그래서 진짜 사진만 따로
-        // 골라 랜덤 배치하고, 자리 후보에서도 0번(제목)을 제외해 가라가 항상 문서에서 가장
+        // 가라 사진(decoyPhotoUriCache)은 selectedImages에 실제로 들어있지만, 배치 대상이
+        // 아니라 항상 1번 문단(제목 다음)에 고정돼야 한다 - 섞이면 같은 가라 사진이 다른
+        // 자리에도 또 들어가거나, 반대로 제목 자리(0번)에 진짜 사진이 배치돼 가라보다 먼저
+        // 나오는 문제가 재발한다(사용자 지적: "사진이 맨위에 올라왔다"). 그래서 진짜 사진만
+        // 따로 골라 배치하고, 자리 후보에서도 0번(제목)을 제외해 가라가 항상 문서에서 가장
         // 먼저 나오는 사진 자리를 지키게 한다.
         val decoyUri = if (decoyActive) decoyPhotoUriCache else null
         val realImages = if (decoyUri != null) selectedImages.filter { it != decoyUri } else selectedImages
@@ -720,25 +754,23 @@ class RichCopyTestActivity : AppCompatActivity() {
             return
         }
         imagePositions.clear()
-        // 사진 수가 문단 수보다 많으면(실제 현장 사진은 흔히 문단보다 많다) 예전 방식은
-        // 남는 사진마다 매번 독립적으로 blocks.indices.random()을 새로 뽑았는데, 문단 수가
-        // 적을수록 같은 자리가 반복 당첨될 확률이 높아 "사진마다 다른데 배치는 다 똑같다"는
-        // 문제가 실기기에서 확인됐다. 자리 목록을 섞은 뒤 순환(cycle)시켜서 사진이 아무리
-        // 많아도 모든 문단에 고르게 퍼지도록 고친다.
+        // 사진은 촬영 날짜·시간 순(selectedImages에 이미 그 순서로 정렬돼 있다)으로, 본문
+        // 자리도 위에서 아래로 순서대로 채운다(사용자 지시 - "날짜 시간별로 위에서 아래로") -
+        // 랜덤으로 섞으면 실제 작업 순서와 사진 순서가 어긋나 보일 수 있다. 사진 수가 문단
+        // 수보다 많으면 자리 목록을 순환(cycle)해서 끝까지 고르게 채운다.
         // 소제목 바로 아래에는 사진을 넣지 않는다. 제목과 소제목을 제외한 실제 본문 블록만
         // 사진 위치 후보로 사용해서, 사진은 반드시 본문 문단을 쓴 뒤에 들어가게 한다.
         val candidatePositions = blocks.indices.drop(1)
             .filter { index -> !isLikelyHeading(blocks[index]) }
             .ifEmpty { listOf(0) }
-        val positionCycle = candidatePositions.shuffled()
-        realImages.shuffled().forEachIndexed { i, uri ->
-            val position = positionCycle[i % positionCycle.size]
+        realImages.forEachIndexed { i, uri ->
+            val position = candidatePositions[i % candidatePositions.size]
             imagePositions.getOrPut(position) { mutableListOf() }.add(uri)
         }
         applyDecoyIfActive()
         enforceNoPhotoBelowHeading(blocks)
         renderPreview()
-        status.text = "사진 ${realImages.size}장을 본문 문단 뒤에 랜덤 배치했습니다."
+        status.text = "사진 ${realImages.size}장을 촬영 시간 순서대로 본문 문단 뒤에 배치했습니다."
     }
 
     /**
