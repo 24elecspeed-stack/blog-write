@@ -32,8 +32,9 @@
             <button class="tab-btn" data-tab="naver-blog">블로그<br>제목<br>추출</button>
             <button class="tab-btn" data-tab="trend-tab">트렌드</button>
             <button class="tab-btn" data-tab="youtube-tab">제작<br>도구</button>
+            <button class="tab-btn" data-tab="electric-auto">전기수리<br>자동발행</button>
             <button class="tab-btn" data-tab="settings">⚙</button>
-          
+
         </div>
 
         <!-- 키워드 분석_시작 -->
@@ -2319,6 +2320,80 @@
         <!-- 유튜브 탭 종료 -->
 
 
+        <!-- 전기수리 자동발행 -->
+        <div class="tab-content" id="electric-auto" style="padding:14px;">
+            <h3 style="margin:0 0 10px;font-size:14px;">전기수리 저경쟁 키워드 자동발행</h3>
+            <p style="font-size:11px;color:#888;margin:0 0 14px;line-height:1.5;">
+                '키워드 분석' 탭에서 메인 키워드를 "전기수리"로 두고 먼저 분석을 실행해두세요.
+                이 탭은 그 분석 결과 중 경쟁강도가 낮은 키워드를 골라, 기존 Gemini 자동화로 글을 쓰고
+                워드프레스에 발행합니다. 처음에는 항상 <b>임시글(draft)</b>로만 올라가며, 사용자가
+                직접 확인 후 "실제 발행" 체크박스를 켜야 공개 상태로 올라갑니다.
+            </p>
+
+            <fieldset style="border:1px solid #333;border-radius:8px;padding:10px;margin-bottom:12px;">
+                <legend style="font-size:11px;color:#aaa;padding:0 6px;">워드프레스 연결</legend>
+                <label style="display:block;font-size:11px;margin-bottom:4px;">사이트 주소
+                    <input type="text" id="ea-wp-url" placeholder="https://24elecspeed.com" style="width:100%;box-sizing:border-box;margin-top:2px;">
+                </label>
+                <label style="display:block;font-size:11px;margin-bottom:4px;">사용자명
+                    <input type="text" id="ea-wp-user" style="width:100%;box-sizing:border-box;margin-top:2px;">
+                </label>
+                <label style="display:block;font-size:11px;margin-bottom:4px;">애플리케이션 비밀번호
+                    <input type="password" id="ea-wp-pass" placeholder="워드프레스 프로필 > 애플리케이션 비밀번호" style="width:100%;box-sizing:border-box;margin-top:2px;">
+                </label>
+            </fieldset>
+
+            <fieldset style="border:1px solid #333;border-radius:8px;padding:10px;margin-bottom:12px;">
+                <legend style="font-size:11px;color:#aaa;padding:0 6px;">발행 설정</legend>
+                <label style="display:block;font-size:11px;margin-bottom:4px;">메인 키워드
+                    <input type="text" id="ea-main-keyword" value="전기수리" style="width:100%;box-sizing:border-box;margin-top:2px;">
+                </label>
+                <label style="display:block;font-size:11px;margin-bottom:4px;">하루 발행 개수
+                    <input type="number" id="ea-posts-per-day" value="1" min="1" max="20" style="width:100%;box-sizing:border-box;margin-top:2px;">
+                </label>
+                <div style="display:flex;gap:8px;">
+                    <label style="flex:1;font-size:11px;">시작 시각
+                        <input type="number" id="ea-window-start" value="9" min="0" max="23" style="width:100%;box-sizing:border-box;margin-top:2px;">
+                    </label>
+                    <label style="flex:1;font-size:11px;">종료 시각
+                        <input type="number" id="ea-window-end" value="21" min="0" max="23" style="width:100%;box-sizing:border-box;margin-top:2px;">
+                    </label>
+                </div>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:8px;">
+                    <input type="checkbox" id="ea-publish-live"> 실제 발행(공개)로 올리기 — 끄면 항상 임시글
+                </label>
+                <button id="ea-save-settings" style="margin-top:8px;width:100%;">설정 저장</button>
+            </fieldset>
+
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <button id="ea-preview-keywords" style="flex:1;">저경쟁 키워드 미리보기</button>
+                <button id="ea-generate-draft" style="flex:1;">① 초안 생성(크롤링+글쓰기)</button>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <button id="ea-start-auto" style="flex:1;">자동발행 시작</button>
+                <button id="ea-stop-auto" style="flex:1;">중지</button>
+            </div>
+
+            <div id="ea-keyword-preview" style="font-size:11px;color:#ccc;margin-bottom:10px;white-space:pre-wrap;"></div>
+
+            <fieldset id="ea-draft-box" style="display:none;border:1px solid #4a7;border-radius:8px;padding:10px;margin-bottom:12px;">
+                <legend style="font-size:11px;color:#7d7;padding:0 6px;">② 초안 미리보기 - 확인 후 발행하세요</legend>
+                <div id="ea-draft-title" style="font-size:13px;font-weight:600;margin-bottom:6px;"></div>
+                <div id="ea-draft-summary" style="font-size:11px;color:#aaa;margin-bottom:6px;"></div>
+                <div id="ea-draft-body" style="font-size:11px;color:#ddd;max-height:220px;overflow-y:auto;background:#111;border-radius:6px;padding:8px;margin-bottom:8px;white-space:pre-wrap;"></div>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:4px;">
+                    <input type="checkbox" id="ea-confirm-publish"> 내용을 확인했습니다. 워드프레스에 발행합니다.
+                </label>
+                <div id="ea-publish-warning" style="font-size:10px;color:#f66;margin-bottom:6px;"></div>
+                <button id="ea-publish-draft" style="width:100%;">③ 이 초안 발행하기</button>
+            </fieldset>
+
+            <div style="font-size:11px;color:#888;margin-bottom:4px;">상태/로그</div>
+            <div id="ea-log" style="font-size:10px;color:#9ad;background:#111;border-radius:6px;padding:8px;height:140px;overflow-y:auto;white-space:pre-wrap;"></div>
+        </div>
+        <!-- 전기수리 자동발행 종료 -->
+
+
         <!-- 설정 -->
         <div class="tab-content" id="settings">
             
@@ -3954,6 +4029,7 @@
     <script src="detailpage.js"></script> <!-- ✅ 상세페이지 -->
     <script src="cardnews.js"></script> <!-- ✅ AI 카드 뉴스 -->
     <script src="popup.js"></script>
+    <script src="electric_auto_popup.js"></script>
 
     <!-- ✅ 샌드박스 통신용 숨겨진 iframe -->
     <iframe id="ffmpeg-sandbox" src="ffmpeg_worker.html" style="display: none;"></iframe>
